@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-    baseURL:'https://api.infusionsoft.com'
+    baseURL:'https://api.infusionsoft.com/crm/rest/v1'
 })
 
 api.interceptors.request.use(
@@ -65,3 +65,4 @@ api.interceptors.response.use(
         return Promise.reject(error) 
     }
 )
+export default api

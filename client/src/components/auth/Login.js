@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -17,6 +17,14 @@ function Login() {
       setIsLoading(false);
     }, 2000);
   };
+
+  useEffect(() => {
+    const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+    if (tokens.access_token) {
+      window.location.href = '/dashboard'; // Redirigir al dashboard si ya hay tokens
+    }
+
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">

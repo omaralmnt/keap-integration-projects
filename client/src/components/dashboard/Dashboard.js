@@ -310,7 +310,7 @@ function Dashboard() {
   ];
 
   return (
-    <Layout>
+    <>
       {/* Account Info Section */}
       <Card className="mb-8">
         <CardHeader>
@@ -425,7 +425,7 @@ function Dashboard() {
         onSave={handleSaveAccount}
         isLoading={isSaving}
         />
-    </Layout>
+    </>
   );
 }
 

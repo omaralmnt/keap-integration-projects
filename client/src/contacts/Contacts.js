@@ -35,7 +35,7 @@ export function Contacts() {
   const [email, setEmail] = useState('');
   const [givenName, setGivenName] = useState('');
   const [familyName, setFamilyName] = useState('');
-  const [limit, setLimit] = useState(50);
+  const [limit, setLimit] = useState(3);
   const [offset, setOffset] = useState(0);
   const [order, setOrder] = useState('date_created');
   const [orderDirection, setOrderDirection] = useState('descending');
@@ -47,12 +47,24 @@ export function Contacts() {
   // Search function - TÚ IMPLEMENTARÁS LA LÓGICA DE API
 
   const handlePagination = async (action) => {
-
-    if (action == 'next') {
-        keapAPI.getContactsPaginated(next)
+    console.log('hi')
+    let response;
+    if (action === 'next') {
+       response = await keapAPI.getContactsPaginated(next)
+       setOffset(Number(offset) + Number(limit))
+  
     }else{
-      keapAPI.getContactsPaginated(previous)
+       response = await keapAPI.getContactsPaginated(previous)
+       const addedOffset = Number(offset) - Number(limit)
+       if (addedOffset > -1 ) {
+               setOffset(addedOffset)
+
+       }
+
     }
+    setContacts(response.contacts)
+    setNext(response.next)
+    setPrevious(response.previous)
         
   }
   const handleSearch = async () => {
@@ -278,6 +290,8 @@ export function Contacts() {
                 size="sm"
                 disabled={offset === 0}
                 className="inline-flex items-center px-4 py-2 text-sm font-medium"
+                onClick={() => handlePagination('previous')}
+
               >
                 Previous
               </Button>

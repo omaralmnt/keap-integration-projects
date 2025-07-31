@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-    baseURL:'https://api.infusionsoft.com/crm/rest/v1'
+    baseURL:process.env.REACT_APP_KEAP_API_BASE_URL
 })
 
 api.interceptors.request.use(
@@ -31,7 +31,6 @@ api.interceptors.response.use(
                 
                 const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}')
 
-                // Llamar a TU backend, no directo a Keap
                 const refreshResponse = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/auth/keap/refresh`, {
                     method: 'POST', 
                     headers: {

@@ -13,7 +13,7 @@ function Callback() {
         // 1. Capturar el código de la URL  
         const code = searchParams.get('code');
         const error = searchParams.get('error');
-
+        console.log(error)
         if (error) {
           setStatus('error');
           setMessage('Authorization failed. Please try again.');
@@ -41,7 +41,7 @@ function Callback() {
         })
 
         let data = await response.json();
-        
+        console.log(data)
         localStorage.setItem('keap_tokens', JSON.stringify(data));
       
         if (!data.access_token) {

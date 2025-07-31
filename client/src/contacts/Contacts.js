@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '../components/ui/Button';
 import keapAPI from '../services/keapAPI';
+import { useNavigate } from 'react-router-dom';
 
 // Input component
 const Input = ({ 
@@ -25,6 +26,8 @@ const Input = ({
 
 // Main Contacts Component
 export function Contacts() {
+    const navigate = useNavigate();
+
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(false);
   
@@ -38,15 +41,27 @@ export function Contacts() {
   const [orderDirection, setOrderDirection] = useState('descending');
   const [since, setSince] = useState('');
   const [until, setUntil] = useState('');
+  const [previous,setPrevious] = useState('')
+  const [next,setNext] = useState('')
 
   // Search function - TÚ IMPLEMENTARÁS LA LÓGICA DE API
+
+  const handlePagination = async (action) => {
+
+    if (action == 'next') {
+        keapAPI.getContactsPaginated(next)
+    }else{
+      keapAPI.getContactsPaginated(previous)
+    }
+        
+  }
   const handleSearch = async () => {
     try {
             setLoading(true);
 
     const formattedSince = formatDateForAPI(since)
     const formattedUntil = formatDateForAPI(until)
-    console.log('s',formattedSince)
+    // console.log('s',formattedSince)
     const queryParams = {
       email,
       given_name: givenName,
@@ -63,6 +78,8 @@ export function Contacts() {
     const data = await keapAPI.getContacts(queryParams)
     console.log(data)
     setContacts(data.contacts)
+    setPrevious(data.previous)
+    setNext(data.next)
  
     } catch (error) {
      console.log(error)   
@@ -79,14 +96,12 @@ export function Contacts() {
     // Keap API: "2025-03-09T10:57:00.000Z"
     return dateTimeLocal + ':00.000Z';
     };
-  const clearSearch = () => {
-    setEmail('');
-    setGivenName('');
-    setFamilyName('');
-    setOffset(0);
-    setSince('');
-    setUntil('');
-    setContacts([]);
+  const newContact = () => {
+      navigate('/contacts/create');
+  };
+
+  const viewContact = (contactId) => {
+      navigate(`/contacts/${contactId}`);
   };
 
   return (
@@ -185,8 +200,8 @@ export function Contacts() {
           <Button onClick={handleSearch} disabled={loading}>
             {loading ? 'Searching...' : 'Search'}
           </Button>
-          <Button variant="secondary" onClick={clearSearch}>
-            Clear
+          <Button variant="secondary" onClick={newContact}>
+            New contact
           </Button>
         </div>
       </div>
@@ -218,6 +233,7 @@ export function Contacts() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -236,10 +252,45 @@ export function Contacts() {
                     <td className="px-4 py-4 text-sm text-gray-500">
                       {new Date(contact.date_created).toLocaleDateString()}
                     </td>
+                    <td className="px-4 py-4 text-sm text-gray-900">
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => viewContact(contact.id)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        View
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && contacts.length > 0 && (
+          <div className="bg-white px-4 py-3 border-t border-gray-200">
+            <div className="flex items-center justify-center space-x-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={offset === 0}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium"
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={contacts.length < limit}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium"
+                onClick={() => handlePagination('next')}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </div>

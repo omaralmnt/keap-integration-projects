@@ -13,7 +13,7 @@ export async function getAccessToken(req,res) {
       params.append('grant_type','authorization_code')
       params.append('redirect_uri',process.env.KEAP_REDIRECT_URI)
     //   console.log(params.toString())
-      const response =  await fetch('https://api.infusionsoft.com/token',{
+      const response =  await fetch(process.env.KEAP_TOKEN_URL,{
         method: 'POST',
         headers:{
           'Content-Type': 'application/x-www-form-urlencoded'

@@ -113,7 +113,7 @@ export function Contacts() {
   };
 
   const viewContact = (contactId) => {
-      navigate(`/contacts/${contactId}`);
+      navigate(`/contacts/profile/${contactId}`);
   };
 
   return (

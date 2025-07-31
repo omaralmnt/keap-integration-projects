@@ -16,6 +16,7 @@ class KeapAPI{
     }
     async updateAccountProfile(accountInfo) {
         try {
+            console.log(accountInfo)
             const response = await api.put('/account/profile',accountInfo)
             return response.data
         } catch (error) {
@@ -80,8 +81,18 @@ class KeapAPI{
         
                   
         } catch (error) {
-            console.log('err')
-            console.log(error)
+        if (error.response) {
+            // El servidor respondió con un código de estado fuera del rango 2xx
+            console.log('Error de API:', error.response.data);
+            console.log('Código de estado:', error.response.status);
+            console.log('Encabezados:', error.response.headers);
+        } else if (error.request) {
+            // La solicitud fue hecha pero no hubo respuesta
+            console.log('No hubo respuesta del servidor:', error.request);
+        } else {
+            // Ocurrió un error al configurar la solicitud
+            console.log('Error al configurar la solicitud:', error.message);
+        }
             throw error
         }
 
@@ -97,6 +108,19 @@ class KeapAPI{
         }
         
     }
+
+    async getContactById(id){
+        try {
+            console.log(id)
+         const response = await api.get('/contacts/'+id) 
+         return response.data       
+        } catch (error) {
+            console.log(error)
+            throw error
+        }
+    }
+
+
 
 
 }

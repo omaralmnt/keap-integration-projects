@@ -7,6 +7,7 @@ import { Affiliates } from './components/affiliates/Affiliates';
 import { Layout } from './components/layout/Layout';
 import { Contacts } from './contacts/Contacts';
 import { CreateContact } from './contacts/CreateContact';
+import { ContactProfile } from './contacts/ContactProfile';
 
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
@@ -39,6 +40,11 @@ function App() {
       <Route path='/contacts/create' element={
         <ProtectedRoute>
           <CreateContact/>
+        </ProtectedRoute>
+      }/>
+      <Route path='/contacts/profile/:id' element={
+        <ProtectedRoute>
+          <ContactProfile/>
         </ProtectedRoute>
       }/>
     </Routes>

@@ -31,7 +31,7 @@ function Callback() {
 
         setMessage('Processing authorization...');
 
-        const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/auth/keap`,{
+        const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/keap/auth`,{
             method: 'POST',
             headers: {
                 'Content-Type' : 'application/json'

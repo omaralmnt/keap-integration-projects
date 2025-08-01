@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import keapAPI from '../services/keapAPI';
+import keapAPI from '../../services/keapAPI';
 
 export function CreateContact() {
   const [loading, setLoading] = useState(false);

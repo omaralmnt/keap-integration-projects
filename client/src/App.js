@@ -5,12 +5,12 @@ import Callback from './components/auth/Callback';
 import Dashboard from './components/dashboard/Dashboard';
 import { Affiliates } from './components/affiliates/Affiliates';
 import { Layout } from './components/layout/Layout';
-import { Contacts } from './contacts/Contacts';
-import { CreateOrUpdateContact } from './contacts/CreateOrUpdateContact';
-import { ContactProfile } from './contacts/ContactProfile';
+import { Contacts } from './components/contacts/Contacts';
+import { CreateOrUpdateContact } from './components/contacts/CreateOrUpdateContact';
+import { ContactProfile } from './components//contacts/ContactProfile';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
-import { CreateContact } from './contacts/CreateContact';
+import { CreateContact } from './components/contacts/CreateContact';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;

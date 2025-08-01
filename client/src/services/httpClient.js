@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-    baseURL:process.env.REACT_APP_KEAP_API_BASE_URL
+    baseURL: process.env.REACT_APP_KEAP_PROXY_URL
 })
 
 api.interceptors.request.use(
@@ -31,7 +31,7 @@ api.interceptors.response.use(
                 
                 const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}')
 
-                const refreshResponse = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/auth/keap/refresh`, {
+                const refreshResponse = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/keap/auth/refresh`, {
                     method: 'POST', 
                     headers: {
                         'Content-Type': 'application/json' 

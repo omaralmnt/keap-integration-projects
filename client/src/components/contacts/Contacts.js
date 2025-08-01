@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Button } from '../components/ui/Button';
-import keapAPI from '../services/keapAPI';
+import { Button } from '../ui/Button';
+import keapAPI from '../../services/keapAPI';
 import { useNavigate } from 'react-router-dom';
 
 // Input component

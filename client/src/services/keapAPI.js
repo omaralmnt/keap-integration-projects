@@ -48,7 +48,7 @@ class KeapAPI {
     async getContacts(queryParams) {
         try {
             // console.log('testing',queryParams)
-
+            console.log('params',queryParams)
             const response = await api.get('/contacts',
                 {
                     params: {

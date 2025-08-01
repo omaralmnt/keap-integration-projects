@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import keapAPI from '../services/keapAPI';
+import keapAPI from '../../services/keapAPI';
 import { toast } from 'react-toastify';
 
 export function CreateOrUpdateContact() {

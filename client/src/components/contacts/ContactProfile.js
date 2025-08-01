@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/Button';
-import { User, Mail, Phone, MapPin, ArrowLeft, Edit2, Save, X, Building, Clock, Tag, Globe, Printer, Plus, Trash2 } from 'lucide-react';
-import keapAPI from '../services/keapAPI';
+import { Button } from '../ui/Button';
+import { User, Mail, Phone, MapPin, ArrowLeft, Edit2, Save, X, Clock, Tag, Globe, Printer, Plus, Trash2 } from 'lucide-react';
+import keapAPI from '../../services/keapAPI';
 
 const Input = ({ type = 'text', placeholder, value, onChange, ...props }) => (
   <input 

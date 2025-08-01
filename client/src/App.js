@@ -6,10 +6,11 @@ import Dashboard from './components/dashboard/Dashboard';
 import { Affiliates } from './components/affiliates/Affiliates';
 import { Layout } from './components/layout/Layout';
 import { Contacts } from './contacts/Contacts';
-import { CreateContact } from './contacts/CreateContact';
+import { CreateOrUpdateContact } from './contacts/CreateOrUpdateContact';
 import { ContactProfile } from './contacts/ContactProfile';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
+import { CreateContact } from './contacts/CreateContact';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -37,6 +38,11 @@ function App() {
       <Route path='/contacts' element={
         <ProtectedRoute>
           <Contacts/>
+        </ProtectedRoute>
+      }/>
+      <Route path='/contacts/createOrUpdate' element={
+        <ProtectedRoute>
+          <CreateOrUpdateContact/>
         </ProtectedRoute>
       }/>
       <Route path='/contacts/create' element={

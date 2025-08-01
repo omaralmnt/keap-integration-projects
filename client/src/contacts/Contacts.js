@@ -111,6 +111,9 @@ export function Contacts() {
   const newContact = () => {
       navigate('/contacts/create');
   };
+  const createOrUpdateContact = () => {
+      navigate('/contacts/createOrUpdate');
+  };
 
   const viewContact = (contactId) => {
       navigate(`/contacts/profile/${contactId}`);
@@ -212,8 +215,11 @@ export function Contacts() {
           <Button onClick={handleSearch} disabled={loading}>
             {loading ? 'Searching...' : 'Search'}
           </Button>
+          <Button variant="secondary" onClick={createOrUpdateContact}>
+            Create/Update
+          </Button>
           <Button variant="secondary" onClick={newContact}>
-            New contact
+            Create
           </Button>
         </div>
       </div>

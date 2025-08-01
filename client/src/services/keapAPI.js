@@ -3,8 +3,8 @@ import api from './httpClient'
 const handleError = (error) => {
     if (error.response) {
         console.log(error.response.status + ' - ' + error.response.data?.message)
-    }else{
-       console.log(error)
+    } else {
+        console.log(error)
 
     }
     throw error
@@ -92,6 +92,42 @@ class KeapAPI {
 
 
     }
+
+    async createContact(contactInfo) {
+        try {
+
+            Object.keys(contactInfo).forEach(key => {
+                if (contactInfo[key] === undefined) {
+                    delete contactInfo[key];
+                }
+            });
+            console.log(contactInfo)
+            const response = await api.post('/contacts', contactInfo)
+            return response.data
+
+
+        } catch (error) {
+            handleError(error)
+        }
+
+    }
+
+    async updateContact(id,contactInfo) {
+        try {
+            Object.keys(contactInfo).forEach(key => {
+                if (contactInfo[key] === undefined) {
+                    delete contactInfo[key];
+                }
+            });
+
+            const response = await api.patch(`/contacts/${id}`,contactInfo)
+            return response.data
+        } catch (error) {
+            handleError(error)
+        }
+    }
+
+
     async getContactsPaginated(url) {
         try {
             const response = await api.get(url)
@@ -105,7 +141,11 @@ class KeapAPI {
     async getContactById(id) {
         try {
             console.log(id)
-            const response = await api.get('/contacts/' + id)
+            const response = await api.get(`/contacts/${id}`, {
+                params: {
+                    optional_properties: 'job_title,website,middle_name,suffix,contact_type,spouse_name,time_zone,birthday,anniversary'
+                }
+            })
             return response.data
         } catch (error) {
             handleError(error)

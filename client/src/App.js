@@ -8,7 +8,8 @@ import { Layout } from './components/layout/Layout';
 import { Contacts } from './contacts/Contacts';
 import { CreateContact } from './contacts/CreateContact';
 import { ContactProfile } from './contacts/ContactProfile';
-
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -16,6 +17,7 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
+    <>
     <Routes>
       {/* Auth routes */}
       <Route path='/' element={<Login/>}/>
@@ -47,7 +49,11 @@ function App() {
           <ContactProfile/>
         </ProtectedRoute>
       }/>
+      
     </Routes>
+    <ToastContainer />
+
+    </>
   );
 }
 

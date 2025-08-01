@@ -1,28 +1,6 @@
 import { useState } from 'react';
-import { Button } from '../components/ui/Button';
 import keapAPI from '../services/keapAPI';
-
-const Input = ({ type = 'text', placeholder, value, onChange, className = '', ...props }) => (
-  <input
-    type={type}
-    placeholder={placeholder}
-    value={value}
-    onChange={onChange}
-    className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${className}`}
-    {...props}
-  />
-);
-
-const Select = ({ value, onChange, children, className = '', ...props }) => (
-  <select
-    value={value}
-    onChange={onChange}
-    className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${className}`}
-    {...props}
-  >
-    {children}
-  </select>
-);
+import { toast } from 'react-toastify';
 
 export function CreateContact() {
   const [loading, setLoading] = useState(false);
@@ -31,105 +9,54 @@ export function CreateContact() {
 
   const [formData, setFormData] = useState({
     // Basic Info
-    givenName: '',
-    familyName: '',
-    middleName: '',
-    preferredName: '',
-    prefix: '',
-    suffix: '',
-    jobTitle: '',
-    contactType: '',
-    spouseName: '',
-    birthday: '',
-    anniversary: '',
-    website: '',
+    givenName: '', familyName: '', middleName: '', preferredName: '', prefix: '', suffix: '',
+    jobTitle: '', contactType: '', spouseName: '', birthday: '', anniversary: '', website: '',
 
-    // Email Addresses (fixed 3)
-    email1: '',
-    email2: '',
-    email3: '',
+    // Email Addresses
+    email1: '', email2: '', email3: '',
 
-    // Phone Numbers (fixed 5)
-    phone1: '',
-    phone1Type: '',
-    phone1Ext: '',
-    phone2: '',
-    phone2Type: '',
-    phone2Ext: '',
-    phone3: '',
-    phone3Type: '',
-    phone3Ext: '',
-    phone4: '',
-    phone4Type: '',
-    phone4Ext: '',
-    phone5: '',
-    phone5Type: '',
-    phone5Ext: '',
+    // Phone Numbers
+    phone1: '', phone1Type: '', phone1Ext: '', phone2: '', phone2Type: '', phone2Ext: '',
+    phone3: '', phone3Type: '', phone3Ext: '', phone4: '', phone4Type: '', phone4Ext: '',
+    phone5: '', phone5Type: '', phone5Ext: '',
 
-    // Fax Numbers (fixed 2)
-    fax1: '',
-    fax1Type: '',
-    fax2: '',
-    fax2Type: '',
+    // Fax Numbers
+    fax1: '', fax1Type: '', fax2: '', fax2Type: '',
 
-    // Addresses (fixed 3)
-    billingLine1: '',
-    billingLine2: '',
-    billingCity: '',
-    billingRegion: '',
-    billingPostal: '',
-    billingZip: '',
-    billingZipFour: '',
-    billingCountry: 'US',
+    // Addresses
+    billingLine1: '', billingLine2: '', billingCity: '', billingRegion: '', billingPostal: '',
+    billingZip: '', billingZipFour: '', billingCountry: 'US',
+    shippingLine1: '', shippingLine2: '', shippingCity: '', shippingRegion: '', shippingPostal: '',
+    shippingZip: '', shippingZipFour: '', shippingCountry: 'US',
+    otherLine1: '', otherLine2: '', otherCity: '', otherRegion: '', otherPostal: '',
+    otherZip: '', otherZipFour: '', otherCountry: 'US',
 
-    shippingLine1: '',
-    shippingLine2: '',
-    shippingCity: '',
-    shippingRegion: '',
-    shippingPostal: '',
-    shippingZip: '',
-    shippingZipFour: '',
-    shippingCountry: 'US',
+    // Social Accounts
+    socialName1: '', socialType1: '', socialName2: '', socialType2: '',
 
-    otherLine1: '',
-    otherLine2: '',
-    otherCity: '',
-    otherRegion: '',
-    otherPostal: '',
-    otherZip: '',
-    otherZipFour: '',
-    otherCountry: 'US',
+    // Custom Fields
+    customField1Id: '', customField1Content: '', customField2Id: '', customField2Content: '',
 
     // Settings
-    companyId: '',
-    leadSourceId: '',
-    ownerId: '',
-    optInReason: '',
-    preferredLocale: 'en_US',
-    timeZone: '',
-    sourceType: '',
-    duplicateOption: 'Email'
+    companyId: '', leadSourceId: '', ownerId: '', optInReason: '', preferredLocale: 'en_US',
+    timeZone: '', sourceType: '', duplicateOption: 'Email', ipAddress: ''
   });
 
-  const updateFormData = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const updateFormData = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
-  const formatDateForAPI = (dateString) => dateString ? new Date(dateString).toISOString() : undefined;
-  const formatDateOnly = (dateString) => dateString ? dateString.split('T')[0] : undefined;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.givenName.trim() && !formData.familyName.trim()) {
-      setError('Please provide at least a given name or family name');
-      return;
-    }
-
+  const handleSubmit = async () => { // ← Agregué async aquí
     try {
+      if (!formData.givenName.trim() && !formData.familyName.trim()) {
+        setError('Please provide at least a given name or family name');
+        return;
+      }
+      if (!formData.email1 && !formData.phone1) {
+        setError('Must provide at least one email or phone number');
+        return;
+      }
+
       setLoading(true);
       setError('');
-      setSuccess(false);
 
       const payload = {};
 
@@ -143,8 +70,8 @@ export function CreateContact() {
       if (formData.jobTitle) payload.job_title = formData.jobTitle;
       if (formData.contactType) payload.contact_type = formData.contactType;
       if (formData.spouseName) payload.spouse_name = formData.spouseName;
-      if (formData.birthday) payload.birthday = formatDateForAPI(formData.birthday);
-      if (formData.anniversary) payload.anniversary = formatDateOnly(formData.anniversary);
+      if (formData.birthday) payload.birthday = new Date(formData.birthday).toISOString();
+      if (formData.anniversary) payload.anniversary = formData.anniversary;
       if (formData.website) payload.website = formData.website;
 
       // Email addresses
@@ -191,6 +118,18 @@ export function CreateContact() {
       });
       if (addresses.length > 0) payload.addresses = addresses;
 
+      // Social accounts
+      const socialAccounts = [];
+      if (formData.socialName1) socialAccounts.push({ name: formData.socialName1, type: formData.socialType1 });
+      if (formData.socialName2) socialAccounts.push({ name: formData.socialName2, type: formData.socialType2 });
+      if (socialAccounts.length > 0) payload.social_accounts = socialAccounts;
+
+      // Custom fields
+      const customFields = [];
+      if (formData.customField1Id) customFields.push({ id: parseInt(formData.customField1Id), content: formData.customField1Content });
+      if (formData.customField2Id) customFields.push({ id: parseInt(formData.customField2Id), content: formData.customField2Content });
+      if (customFields.length > 0) payload.custom_fields = customFields;
+
       // Settings
       if (formData.companyId) payload.company = { id: parseInt(formData.companyId) };
       if (formData.leadSourceId) payload.lead_source_id = parseInt(formData.leadSourceId);
@@ -200,14 +139,35 @@ export function CreateContact() {
       if (formData.timeZone) payload.time_zone = formData.timeZone;
       if (formData.sourceType) payload.source_type = formData.sourceType;
       if (formData.duplicateOption) payload.duplicate_option = formData.duplicateOption;
-    //   console.log(payload)
-     const response = await keapAPI.addorEditContact(payload);
-     console.log(response)
-      setSuccess(true);
-      setTimeout(() => resetForm(), 2000);
-      
+      if (formData.ipAddress) payload.origin = { ip_address: formData.ipAddress };
+
+      console.log('Payload:', payload);
+
+      // ← CAMBIOS PRINCIPALES AQUÍ:
+      const response = await keapAPI.createOrUpdateContact(payload); // Usar el método correcto + await
+      console.log('Success response:', response);
+
+      // Mostrar mensaje de éxito usando setError en lugar de toast
+      setError(''); // Limpiar errores
+      toast.success('Contact created/updated successfully')
+
     } catch (error) {
-      setError(error.message || 'Failed to create contact. Please try again.');
+      console.error('Error creating contact:', error);
+
+      // Manejar diferentes tipos de errores
+      let errorMessage = 'Error creating/updating the contact';
+
+      if (error.response) {
+        // Error del servidor con respuesta
+        errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+      } else if (error.message) {
+        // Error con mensaje específico
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
+      setSuccess(false);
+
     } finally {
       setLoading(false);
     }
@@ -215,296 +175,205 @@ export function CreateContact() {
 
   const resetForm = () => {
     setFormData({
-      // Basic Info
-      givenName: '',
-      familyName: '',
-      middleName: '',
-      preferredName: '',
-      prefix: '',
-      suffix: '',
-      jobTitle: '',
-      contactType: '',
-      spouseName: '',
-      birthday: '',
-      anniversary: '',
-      website: '',
-
-      // Email Addresses (fixed 3)
-      email1: '',
-      email2: '',
-      email3: '',
-
-      // Phone Numbers (fixed 5)
-      phone1: '',
-      phone1Type: '',
-      phone1Ext: '',
-      phone2: '',
-      phone2Type: '',
-      phone2Ext: '',
-      phone3: '',
-      phone3Type: '',
-      phone3Ext: '',
-      phone4: '',
-      phone4Type: '',
-      phone4Ext: '',
-      phone5: '',
-      phone5Type: '',
-      phone5Ext: '',
-
-      // Fax Numbers (fixed 2)
-      fax1: '',
-      fax1Type: '',
-      fax2: '',
-      fax2Type: '',
-
-      // Addresses (fixed 3)
-      billingLine1: '',
-      billingLine2: '',
-      billingCity: '',
-      billingRegion: '',
-      billingPostal: '',
-      billingZip: '',
-      billingZipFour: '',
-      billingCountry: 'US',
-
-      shippingLine1: '',
-      shippingLine2: '',
-      shippingCity: '',
-      shippingRegion: '',
-      shippingPostal: '',
-      shippingZip: '',
-      shippingZipFour: '',
-      shippingCountry: 'US',
-
-      otherLine1: '',
-      otherLine2: '',
-      otherCity: '',
-      otherRegion: '',
-      otherPostal: '',
-      otherZip: '',
-      otherZipFour: '',
-      otherCountry: 'US',
-
-      // Settings
-      companyId: '',
-      leadSourceId: '',
-      ownerId: '',
-      optInReason: '',
-      preferredLocale: 'en_US',
-      timeZone: '',
-      sourceType: '',
-      duplicateOption: 'Email'
+      givenName: '', familyName: '', middleName: '', preferredName: '', prefix: '', suffix: '',
+      jobTitle: '', contactType: '', spouseName: '', birthday: '', anniversary: '', website: '',
+      email1: '', email2: '', email3: '',
+      phone1: '', phone1Type: '', phone1Ext: '', phone2: '', phone2Type: '', phone2Ext: '',
+      phone3: '', phone3Type: '', phone3Ext: '', phone4: '', phone4Type: '', phone4Ext: '',
+      phone5: '', phone5Type: '', phone5Ext: '',
+      fax1: '', fax1Type: '', fax2: '', fax2Type: '',
+      billingLine1: '', billingLine2: '', billingCity: '', billingRegion: '', billingPostal: '',
+      billingZip: '', billingZipFour: '', billingCountry: 'US',
+      shippingLine1: '', shippingLine2: '', shippingCity: '', shippingRegion: '', shippingPostal: '',
+      shippingZip: '', shippingZipFour: '', shippingCountry: 'US',
+      otherLine1: '', otherLine2: '', otherCity: '', otherRegion: '', otherPostal: '',
+      otherZip: '', otherZipFour: '', otherCountry: 'US',
+      socialName1: '', socialType1: '', socialName2: '', socialType2: '',
+      customField1Id: '', customField1Content: '', customField2Id: '', customField2Content: '',
+      companyId: '', leadSourceId: '', ownerId: '', optInReason: '', preferredLocale: 'en_US',
+      timeZone: '', sourceType: '', duplicateOption: 'Email', ipAddress: ''
     });
     setSuccess(false);
     setError('');
   };
 
+  const inputClass = "w-full px-2 py-1 text-sm border border-gray-300 rounded";
+  const selectClass = "w-full px-2 py-1 text-sm border border-gray-300 rounded";
+  const sectionClass = "bg-white p-4 rounded shadow";
+  const gridClass = "grid grid-cols-2 md:grid-cols-3 gap-2";
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Create New Contact</h1>
+    <div className="max-w-6xl mx-auto p-4 space-y-4">
+      <h1 className="text-xl font-bold">Create Contact</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {success && (
-          <div className="bg-green-50 border border-green-200 rounded-md p-4">
-            <div className="text-green-800">Contact created successfully! 🎉</div>
-          </div>
-        )}
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="text-red-800">{error}</div>
-          </div>
-        )}
+      {/* {success && <div className="bg-green-50 border border-green-200 rounded p-3 text-green-800">Contact created! 🎉</div>} */}
+      {error && <div className="bg-red-50 border border-red-200 rounded p-3 text-red-800">{error}</div>}
 
-        {/* Basic Information */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Input placeholder="Given Name *" value={formData.givenName} onChange={(e) => updateFormData('givenName', e.target.value)} />
-            <Input placeholder="Middle Name" value={formData.middleName} onChange={(e) => updateFormData('middleName', e.target.value)} />
-            <Input placeholder="Family Name" value={formData.familyName} onChange={(e) => updateFormData('familyName', e.target.value)} />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Input placeholder="Prefix" value={formData.prefix} onChange={(e) => updateFormData('prefix', e.target.value)} />
-            <Input placeholder="Preferred Name" value={formData.preferredName} onChange={(e) => updateFormData('preferredName', e.target.value)} />
-            <Input placeholder="Suffix" value={formData.suffix} onChange={(e) => updateFormData('suffix', e.target.value)} />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input placeholder="Job Title" value={formData.jobTitle} onChange={(e) => updateFormData('jobTitle', e.target.value)} />
-            <Input placeholder="Spouse Name" value={formData.spouseName} onChange={(e) => updateFormData('spouseName', e.target.value)} />
-          </div>
+      {/* Basic Info */}
+      <div className={sectionClass}>
+        <h2 className="font-medium mb-2">Basic Info</h2>
+        <div className={gridClass}>
+          <input placeholder="Given Name *" value={formData.givenName} onChange={(e) => updateFormData('givenName', e.target.value)} className={inputClass} />
+          <input placeholder="Middle Name" value={formData.middleName} onChange={(e) => updateFormData('middleName', e.target.value)} className={inputClass} />
+          <input placeholder="Family Name" value={formData.familyName} onChange={(e) => updateFormData('familyName', e.target.value)} className={inputClass} />
+          <input placeholder="Prefix" value={formData.prefix} onChange={(e) => updateFormData('prefix', e.target.value)} className={inputClass} />
+          <input placeholder="Preferred Name" value={formData.preferredName} onChange={(e) => updateFormData('preferredName', e.target.value)} className={inputClass} />
+          <input placeholder="Suffix" value={formData.suffix} onChange={(e) => updateFormData('suffix', e.target.value)} className={inputClass} />
+          <input placeholder="Job Title" value={formData.jobTitle} onChange={(e) => updateFormData('jobTitle', e.target.value)} className={inputClass} />
+          <select value={formData.contactType} onChange={(e) => updateFormData('contactType', e.target.value)} className={selectClass}>
+            <option value="">Contact Type</option>
+            <option value="Lead">Lead</option>
+            <option value="Client">Client</option>
+            <option value="Other">Other</option>
+          </select>
+          <input placeholder="Spouse Name" value={formData.spouseName} onChange={(e) => updateFormData('spouseName', e.target.value)} className={inputClass} />
+          <input placeholder="Website" value={formData.website} onChange={(e) => updateFormData('website', e.target.value)} className={inputClass} />
+          <input type="datetime-local" placeholder="Birthday" value={formData.birthday} onChange={(e) => updateFormData('birthday', e.target.value)} className={inputClass} />
+          <input type="date" placeholder="Anniversary" value={formData.anniversary} onChange={(e) => updateFormData('anniversary', e.target.value)} className={inputClass} />
         </div>
+      </div>
 
-        {/* Email Addresses */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Email Addresses</h2>
-          <div className="space-y-3">
-            <Input placeholder="Email 1" value={formData.email1} onChange={(e) => updateFormData('email1', e.target.value)} type="email" />
-            <Input placeholder="Email 2" value={formData.email2} onChange={(e) => updateFormData('email2', e.target.value)} type="email" />
-            <Input placeholder="Email 3" value={formData.email3} onChange={(e) => updateFormData('email3', e.target.value)} type="email" />
-          </div>
+      {/* Emails */}
+      <div className={sectionClass}>
+        <h2 className="font-medium mb-2">Emails</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <input type="email" placeholder="Email 1 *" value={formData.email1} onChange={(e) => updateFormData('email1', e.target.value)} className={inputClass} />
+          <input type="email" placeholder="Email 2" value={formData.email2} onChange={(e) => updateFormData('email2', e.target.value)} className={inputClass} />
+          <input type="email" placeholder="Email 3" value={formData.email3} onChange={(e) => updateFormData('email3', e.target.value)} className={inputClass} />
         </div>
+      </div>
 
-        {/* Phone Numbers */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Phone Numbers</h2>
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input placeholder="Phone 1" value={formData.phone1} onChange={(e) => updateFormData('phone1', e.target.value)} />
-              <Input placeholder="Type" value={formData.phone1Type} onChange={(e) => updateFormData('phone1Type', e.target.value)} />
-              <Input placeholder="Extension" value={formData.phone1Ext} onChange={(e) => updateFormData('phone1Ext', e.target.value)} />
+      {/* Phones */}
+      <div className={sectionClass}>
+        <h2 className="font-medium mb-2">Phones</h2>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="grid grid-cols-3 gap-2">
+              <input placeholder={`Phone ${i} ${i === 1 ? '*' : ''}`} value={formData[`phone${i}`]} onChange={(e) => updateFormData(`phone${i}`, e.target.value)} className={inputClass} />
+              <select value={formData[`phone${i}Type`]} onChange={(e) => updateFormData(`phone${i}Type`, e.target.value)} className={selectClass}>
+                <option value="">Type</option>
+                <option value="HOME">HOME</option>
+                <option value="WORK">WORK</option>
+                <option value="MOBILE">MOBILE</option>
+                <option value="OTHER">OTHER</option>
+              </select>
+              <input placeholder="Extension" value={formData[`phone${i}Ext`]} onChange={(e) => updateFormData(`phone${i}Ext`, e.target.value)} className={inputClass} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input placeholder="Phone 2" value={formData.phone2} onChange={(e) => updateFormData('phone2', e.target.value)} />
-              <Input placeholder="Type" value={formData.phone2Type} onChange={(e) => updateFormData('phone2Type', e.target.value)} />
-              <Input placeholder="Extension" value={formData.phone2Ext} onChange={(e) => updateFormData('phone2Ext', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input placeholder="Phone 3" value={formData.phone3} onChange={(e) => updateFormData('phone3', e.target.value)} />
-              <Input placeholder="Type" value={formData.phone3Type} onChange={(e) => updateFormData('phone3Type', e.target.value)} />
-              <Input placeholder="Extension" value={formData.phone3Ext} onChange={(e) => updateFormData('phone3Ext', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input placeholder="Phone 4" value={formData.phone4} onChange={(e) => updateFormData('phone4', e.target.value)} />
-              <Input placeholder="Type" value={formData.phone4Type} onChange={(e) => updateFormData('phone4Type', e.target.value)} />
-              <Input placeholder="Extension" value={formData.phone4Ext} onChange={(e) => updateFormData('phone4Ext', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input placeholder="Phone 5" value={formData.phone5} onChange={(e) => updateFormData('phone5', e.target.value)} />
-              <Input placeholder="Type" value={formData.phone5Type} onChange={(e) => updateFormData('phone5Type', e.target.value)} />
-              <Input placeholder="Extension" value={formData.phone5Ext} onChange={(e) => updateFormData('phone5Ext', e.target.value)} />
-            </div>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Fax Numbers */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Fax Numbers</h2>
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input placeholder="Fax 1" value={formData.fax1} onChange={(e) => updateFormData('fax1', e.target.value)} />
-              <Input placeholder="Type" value={formData.fax1Type} onChange={(e) => updateFormData('fax1Type', e.target.value)} />
+      {/* Fax */}
+      <div className={sectionClass}>
+        <h2 className="font-medium mb-2">Fax</h2>
+        <div className="space-y-2">
+          {[1, 2].map(i => (
+            <div key={i} className="grid grid-cols-2 gap-2">
+              <input placeholder={`Fax ${i}`} value={formData[`fax${i}`]} onChange={(e) => updateFormData(`fax${i}`, e.target.value)} className={inputClass} />
+              <select value={formData[`fax${i}Type`]} onChange={(e) => updateFormData(`fax${i}Type`, e.target.value)} className={selectClass}>
+                <option value="">Type</option>
+                <option value="Home">HOME</option>
+                <option value="Work">WORK</option>
+                <option value="Other">OTHER</option>
+              </select>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input placeholder="Fax 2" value={formData.fax2} onChange={(e) => updateFormData('fax2', e.target.value)} />
-              <Input placeholder="Type" value={formData.fax2Type} onChange={(e) => updateFormData('fax2Type', e.target.value)} />
-            </div>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Addresses */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Addresses</h2>
-          
-          <div className="mb-6">
-            <h3 className="text-md font-medium text-gray-700 mb-3">Billing Address</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <Input placeholder="Address Line 1" value={formData.billingLine1} onChange={(e) => updateFormData('billingLine1', e.target.value)} />
-              <Input placeholder="Address Line 2" value={formData.billingLine2} onChange={(e) => updateFormData('billingLine2', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Input placeholder="City" value={formData.billingCity} onChange={(e) => updateFormData('billingCity', e.target.value)} />
-              <Input placeholder="State/Region" value={formData.billingRegion} onChange={(e) => updateFormData('billingRegion', e.target.value)} />
-              <Input placeholder="ZIP/Postal" value={formData.billingPostal} onChange={(e) => updateFormData('billingPostal', e.target.value)} />
-              <Select value={formData.billingCountry} onChange={(e) => updateFormData('billingCountry', e.target.value)}>
-                <option value="US">United States</option>
-                <option value="CA">Canada</option>
-                <option value="MX">Mexico</option>
-                <option value="GB">United Kingdom</option>
-              </Select>
+      {/* Addresses */}
+      <div className={sectionClass}>
+        <h2 className="font-medium mb-2">Addresses</h2>
+        {['billing', 'shipping', 'other'].map(type => (
+          <div key={type} className="mb-4">
+            <h3 className="text-sm font-medium mb-2 capitalize">{type}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <input placeholder="Line 1" value={formData[`${type}Line1`]} onChange={(e) => updateFormData(`${type}Line1`, e.target.value)} className={inputClass} />
+              <input placeholder="Line 2" value={formData[`${type}Line2`]} onChange={(e) => updateFormData(`${type}Line2`, e.target.value)} className={inputClass} />
+              <input placeholder="City" value={formData[`${type}City`]} onChange={(e) => updateFormData(`${type}City`, e.target.value)} className={inputClass} />
+              <input placeholder="Region" value={formData[`${type}Region`]} onChange={(e) => updateFormData(`${type}Region`, e.target.value)} className={inputClass} />
+              <input placeholder="Postal" value={formData[`${type}Postal`]} onChange={(e) => updateFormData(`${type}Postal`, e.target.value)} className={inputClass} />
+              <input placeholder="ZIP" value={formData[`${type}Zip`]} onChange={(e) => updateFormData(`${type}Zip`, e.target.value)} className={inputClass} />
+              <input placeholder="ZIP+4" value={formData[`${type}ZipFour`]} onChange={(e) => updateFormData(`${type}ZipFour`, e.target.value)} className={inputClass} />
+              <select value={formData[`${type}Country`]} onChange={(e) => updateFormData(`${type}Country`, e.target.value)} className={selectClass}>
+                <option value="US">US</option>
+                <option value="CA">CA</option>
+                <option value="MX">MX</option>
+                <option value="GB">GB</option>
+              </select>
             </div>
           </div>
+        ))}
+      </div>
 
-          <div className="mb-6">
-            <h3 className="text-md font-medium text-gray-700 mb-3">Shipping Address</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <Input placeholder="Address Line 1" value={formData.shippingLine1} onChange={(e) => updateFormData('shippingLine1', e.target.value)} />
-              <Input placeholder="Address Line 2" value={formData.shippingLine2} onChange={(e) => updateFormData('shippingLine2', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Input placeholder="City" value={formData.shippingCity} onChange={(e) => updateFormData('shippingCity', e.target.value)} />
-              <Input placeholder="State/Region" value={formData.shippingRegion} onChange={(e) => updateFormData('shippingRegion', e.target.value)} />
-              <Input placeholder="ZIP/Postal" value={formData.shippingPostal} onChange={(e) => updateFormData('shippingPostal', e.target.value)} />
-              <Select value={formData.shippingCountry} onChange={(e) => updateFormData('shippingCountry', e.target.value)}>
-                <option value="US">United States</option>
-                <option value="CA">Canada</option>
-                <option value="MX">Mexico</option>
-                <option value="GB">United Kingdom</option>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-md font-medium text-gray-700 mb-3">Other Address</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <Input placeholder="Address Line 1" value={formData.otherLine1} onChange={(e) => updateFormData('otherLine1', e.target.value)} />
-              <Input placeholder="Address Line 2" value={formData.otherLine2} onChange={(e) => updateFormData('otherLine2', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Input placeholder="City" value={formData.otherCity} onChange={(e) => updateFormData('otherCity', e.target.value)} />
-              <Input placeholder="State/Region" value={formData.otherRegion} onChange={(e) => updateFormData('otherRegion', e.target.value)} />
-              <Input placeholder="ZIP/Postal" value={formData.otherPostal} onChange={(e) => updateFormData('otherPostal', e.target.value)} />
-              <Select value={formData.otherCountry} onChange={(e) => updateFormData('otherCountry', e.target.value)}>
-                <option value="US">United States</option>
-                <option value="CA">Canada</option>
-                <option value="MX">Mexico</option>
-                <option value="GB">United Kingdom</option>
-              </Select>
-            </div>
-          </div>
+      {/* Social & Custom */}
+      <div className={sectionClass}>
+        <h2 className="font-medium mb-2">Social & Custom</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+          <input placeholder="Social Name 1" value={formData.socialName1} onChange={(e) => updateFormData('socialName1', e.target.value)} className={inputClass} />
+          <select value={formData.socialType1} onChange={(e) => updateFormData('socialType1', e.target.value)} className={selectClass}>
+            <option value="">Social Type</option>
+            <option value="Facebook">Facebook</option>
+            <option value="Twitter">Twitter</option>
+            <option value="LinkedIn">LinkedIn</option>
+            <option value="Instagram">Instagram</option>
+          </select>
+          <input placeholder="Social Name 2" value={formData.socialName2} onChange={(e) => updateFormData('socialName2', e.target.value)} className={inputClass} />
+          <select value={formData.socialType2} onChange={(e) => updateFormData('socialType2', e.target.value)} className={selectClass}>
+            <option value="">Social Type</option>
+            <option value="Facebook">Facebook</option>
+            <option value="Twitter">Twitter</option>
+            <option value="LinkedIn">LinkedIn</option>
+            <option value="Instagram">Instagram</option>
+          </select>
         </div>
-
-        {/* Settings */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Settings</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Birthday</label>
-              <Input type="datetime-local" value={formData.birthday} onChange={(e) => updateFormData('birthday', e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Anniversary</label>
-              <Input type="date" value={formData.anniversary} onChange={(e) => updateFormData('anniversary', e.target.value)} />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Input placeholder="Contact Type" value={formData.contactType} onChange={(e) => updateFormData('contactType', e.target.value)} />
-            <Select value={formData.sourceType} onChange={(e) => updateFormData('sourceType', e.target.value)}>
-              <option value="">Select Source</option>
-              <option value="APPOINTMENT">APPOINTMENT</option>
-              <option value="FORMAPIHOSTED">FORMAPIHOSTED</option>
-              <option value="FORMAPIINTERNAL">FORMAPIINTERNAL</option>
-              <option value="WEBFORM">WEBFORM</option>
-              <option value="INTERNALFORM">INTERNALFORM</option>
-              <option value="LANDINGPAGE">LANDINGPAGE</option>
-              <option value="IMPORT">IMPORT</option>
-              <option value="MANUAL">MANUAL</option>
-              <option value="API">API</option>
-              <option value="OTHER">OTHER</option>
-              <option value="UNKNOWN">UNKNOWN</option>
-            </Select>
-            <Select value={formData.duplicateOption} onChange={(e) => updateFormData('duplicateOption', e.target.value)}>
-              <option value="">Create new</option>
-              <option value="Email">Email</option>
-              <option value="EmailAndName">EmailAndName</option>
-            </Select>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Input type="number" placeholder="Company ID" value={formData.companyId} onChange={(e) => updateFormData('companyId', e.target.value)} />
-            <Input type="number" placeholder="Lead Source ID" value={formData.leadSourceId} onChange={(e) => updateFormData('leadSourceId', e.target.value)} />
-            <Input type="number" placeholder="Owner ID" value={formData.ownerId} onChange={(e) => updateFormData('ownerId', e.target.value)} />
-            <Input placeholder="Website" value={formData.website} onChange={(e) => updateFormData('website', e.target.value)} />
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <input type="number" placeholder="Custom Field 1 ID" value={formData.customField1Id} onChange={(e) => updateFormData('customField1Id', e.target.value)} className={inputClass} />
+          <input placeholder="Custom Field 1 Content" value={formData.customField1Content} onChange={(e) => updateFormData('customField1Content', e.target.value)} className={inputClass} />
+          <input type="number" placeholder="Custom Field 2 ID" value={formData.customField2Id} onChange={(e) => updateFormData('customField2Id', e.target.value)} className={inputClass} />
+          <input placeholder="Custom Field 2 Content" value={formData.customField2Content} onChange={(e) => updateFormData('customField2Content', e.target.value)} className={inputClass} />
         </div>
+      </div>
 
-        {/* Form Actions */}
-        <div className="flex justify-end space-x-4">
-          <Button type="button" variant="secondary" onClick={resetForm} disabled={loading}>Clear Form</Button>
-          <Button type="submit" disabled={loading || (!formData.givenName.trim() && !formData.familyName.trim())}>
-            {loading ? 'Creating Contact...' : 'Create Contact'}
-          </Button>
+      {/* Settings */}
+      <div className={sectionClass}>
+        <h2 className="font-medium mb-2">Settings</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <input type="number" placeholder="Company ID" value={formData.companyId} onChange={(e) => updateFormData('companyId', e.target.value)} className={inputClass} />
+          <input type="number" placeholder="Lead Source ID" value={formData.leadSourceId} onChange={(e) => updateFormData('leadSourceId', e.target.value)} className={inputClass} />
+          <input type="number" placeholder="Owner ID" value={formData.ownerId} onChange={(e) => updateFormData('ownerId', e.target.value)} className={inputClass} />
+          <input placeholder="Opt-in Reason" value={formData.optInReason} onChange={(e) => updateFormData('optInReason', e.target.value)} className={inputClass} />
+          <select value={formData.preferredLocale} onChange={(e) => updateFormData('preferredLocale', e.target.value)} className={selectClass}>
+            <option value="en_US">en_US</option>
+            <option value="es_ES">es_ES</option>
+            <option value="fr_FR">fr_FR</option>
+          </select>
+          <input placeholder="Time Zone" value={formData.timeZone} onChange={(e) => updateFormData('timeZone', e.target.value)} className={inputClass} />
+          <select value={formData.sourceType} onChange={(e) => updateFormData('sourceType', e.target.value)} className={selectClass}>
+            <option value="">Source Type</option>
+            <option value="APPOINTMENT">APPOINTMENT</option>
+            <option value="WEBFORM">WEBFORM</option>
+            <option value="IMPORT">IMPORT</option>
+            <option value="MANUAL">MANUAL</option>
+            <option value="API">API</option>
+          </select>
+          <select value={formData.duplicateOption} onChange={(e) => updateFormData('duplicateOption', e.target.value)} className={selectClass}>
+            <option value="Email">Email</option>
+            <option value="EmailAndName">EmailAndName</option>
+          </select>
+          <input placeholder="IP Address" value={formData.ipAddress} onChange={(e) => updateFormData('ipAddress', e.target.value)} className={inputClass} />
         </div>
-      </form>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end space-x-4">
+        <button onClick={resetForm} disabled={loading} className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 disabled:opacity-50">
+          Clear
+        </button>
+        <button onClick={handleSubmit} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+          {loading ? 'Creating...' : 'Create Contact'}
+        </button>
+      </div>
     </div>
   );
 }

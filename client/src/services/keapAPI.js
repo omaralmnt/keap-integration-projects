@@ -2,12 +2,16 @@ import api from './httpClient'
 
 const handleError = (error) => {
     if (error.response) {
-        console.log(error.response.status + ' - ' + error.response.data?.message)
+        console.log(error.response.status + ' - ' + error.response.data?.message);
     } else {
-        console.log(error)
-
+        console.log(error);
     }
-    throw error
+    
+    // Devolver información del error en lugar de lanzarlo
+    return {
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message || 'Unknown error'
+    };
 }
 class KeapAPI {
 
@@ -39,16 +43,16 @@ class KeapAPI {
             const response = await api.get('/affiliates')
             return response.data
         } catch (error) {
-            handleError(error)
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
         }
     }
 
-    //Contact endpoints---------   
+    //Contact endpoints-------------------------------------------------------------------------------------------  
 
     async getContacts(queryParams) {
         try {
             // console.log('testing',queryParams)
-            console.log('params',queryParams)
             const response = await api.get('/contacts',
                 {
                     params: {
@@ -69,7 +73,8 @@ class KeapAPI {
 
             return response.data
         } catch (error) {
-            handleError(error)
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
         }
     }
 
@@ -87,7 +92,8 @@ class KeapAPI {
 
 
         } catch (error) {
-            handleError(error)
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
         }
 
 
@@ -107,23 +113,30 @@ class KeapAPI {
 
 
         } catch (error) {
-            handleError(error)
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
         }
 
     }
 
     async updateContact(id,contactInfo) {
         try {
+
+            delete contactInfo.tag_ids;
+            delete contactInfo.ScoreValue;
+            delete contactInfo.last_updated_utc_millis;
+
             Object.keys(contactInfo).forEach(key => {
                 if (contactInfo[key] === undefined) {
                     delete contactInfo[key];
                 }
             });
-
+            console.log(contactInfo)
             const response = await api.patch(`/contacts/${id}`,contactInfo)
             return response.data
         } catch (error) {
-            handleError(error)
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
         }
     }
 
@@ -133,30 +146,151 @@ class KeapAPI {
             const response = await api.get(url)
             return response.data
         } catch (error) {
-            handleError(error)
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
         }
 
     }
 
     async getContactById(id) {
         try {
-            console.log(id)
+            // console.log(id)
             const response = await api.get(`/contacts/${id}`, {
                 params: {
-                    optional_properties: 'job_title,website,middle_name,suffix,contact_type,spouse_name,time_zone,birthday,anniversary'
+                    optional_properties: 'job_title,website,middle_name,suffix,contact_type,spouse_name,time_zone,birthday,anniversary,social_accounts,source_type'
                 }
             })
             return response.data
         } catch (error) {
-            handleError(error)
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async deleteContact(id) {
+        try {
+            const response = await api.delete(`contacts/${id}`)
+            return response
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getCreditCardsByContactId(id){
+        try {
+            const response = await api.get(`contacts/${id}/creditCards`,)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async createCreditCard(contactId, cardData){
+        try {
+          const response = await api.post(`/contacts/${contactId}/creditCards`, cardData)
+          return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getEmailsByContactId(contactId,queryParams){
+        try {
+            const response = await api.get(`/contacts/${contactId}/emails`,{}, {
+                params: queryParams
+            }
+
+            )
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return {success: false,errorInfo}
+        }
+    }
+
+    async createEmailRecord(contactId,emailData){
+        try {
+           
+         const response = await api.post(`/contacts/${contactId}/emails`, emailData)
+         return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return {success: false,errorInfo}
+        }
+    }
+
+    async getContactTags(contactId,queryParams){
+        try {
+            
+            const response = await api.get(`contacts/${contactId}/tags`,{},{
+                params: queryParams
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return {success: false,errorInfo}            
+        }
+    }
+
+    async applyTagsToContact(contactId, tagIds){
+        console.log(tagIds)
+        try {
+            const response = await api.post(`contacts/${contactId}/tags`, {tagIds: tagIds})
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return {success: false,errorInfo}              
         }
     }
 
 
 
+    async removeTagFromContact(contactId,tagId){
+        try {
+            const response = await api.delete(`contacts/${contactId}/tags/${tagId}`)
+            return response
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return {success: false,errorInfo}             
+        }
+    }
+
+async removeTagsFromContact(contactId, tagIds) {
+    try {
+        //tagIds should be an array of tagIds ex: [1,2,3,4]
+        const idsString = tagIds.join(',')  // convierte [181, 119, 127] → "181,119,127"
+        const response = await api.delete(`contacts/${contactId}/tags`, {
+            params: {
+                ids: idsString
+            }
+        })
+        return response
+    } catch (error) {
+        const errorInfo = handleError(error)
+        return { success: false, errorInfo }             
+    }
+}
+
+    //Tag endpoints-------------------------------------------------------------------------------------------  
+
+
+    async getTags(queryParams){
+        try {
+            
+            const response = await api.get(`tags`,{
+                params: queryParams
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return {success: false,errorInfo}            
+        }
+    }
 
 }
 
 const keapAPI = new KeapAPI()
 export default keapAPI
-

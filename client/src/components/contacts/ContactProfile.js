@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
-import { User, Mail, Phone, MapPin, ArrowLeft, Edit2, Save, X, Clock, Tag, Globe, Printer, Plus, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, ArrowLeft, Edit2, Save, X, Clock, Tag, Globe, Printer, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import keapAPI from '../../services/keapAPI';
+import { CreditCardSection } from './CreditCardSection'; // Import the new component
+import { EmailSection } from './EmailSection';
+import { TagSection } from './TagSection';
 
 const Input = ({ type = 'text', placeholder, value, onChange, ...props }) => (
   <input 
@@ -37,6 +40,39 @@ const Section = ({ icon: Icon, title, children }) => (
   </div>
 );
 
+// Delete Confirmation Modal
+const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, contactName }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="flex items-center mb-4">
+          <AlertTriangle className="h-6 w-6 text-red-600 mr-2" />
+          <h3 className="text-lg font-semibold text-gray-900">Delete Contact</h3>
+        </div>
+        
+        <p className="text-gray-600 mb-6">
+          Are you sure you want to delete <strong>{contactName}</strong>? This action cannot be undone.
+        </p>
+        
+        <div className="flex space-x-3 justify-end">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={onConfirm}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Delete Contact
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export function ContactProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -45,6 +81,8 @@ export function ContactProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [error, setError] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchContact();
@@ -65,12 +103,32 @@ export function ContactProfile() {
 
   const handleSave = async () => {
     try {
+      console.log(editData)
       await keapAPI.updateContact(id, editData);
+
       setContact(editData);
       setIsEditing(false);
       setError('');
     } catch (err) {
       setError('Failed to save contact: ' + err.message);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      await keapAPI.deleteContact(id);
+      navigate('/contacts', { 
+        state: { 
+          message: `Contact "${getFullName()}" has been deleted successfully.`,
+          type: 'success'
+        }
+      });
+    } catch (err) {
+      setError('Failed to delete contact: ' + err.message);
+      setShowDeleteModal(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -89,6 +147,11 @@ export function ContactProfile() {
 
   const removeArrayItem = (arrayName, index) => {
     setEditData(prev => ({ ...prev, [arrayName]: prev[arrayName]?.filter((_, i) => i !== index) || [] }));
+  };
+
+  // Handler for credit cards
+  const handleCreditCardsUpdate = (updatedCards) => {
+    setEditData(prev => ({ ...prev, credit_cards: updatedCards }));
   };
 
   const formatDate = (dateStr) => {
@@ -139,9 +202,19 @@ export function ContactProfile() {
               </Button>
             </>
           ) : (
-            <Button size="sm" onClick={() => setIsEditing(true)}>
-              <Edit2 className="h-4 w-4 mr-1" />Edit
-            </Button>
+            <>
+              <Button size="sm" onClick={() => setIsEditing(true)}>
+                <Edit2 className="h-4 w-4 mr-1" />Edit
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setShowDeleteModal(true)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />Delete
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -193,7 +266,13 @@ export function ContactProfile() {
           </div>
         )}
       </Section>
+      {/* Credit Cards Section */}
+      <TagSection contactId={id}/>
+      <EmailSection contactId={contact?.id} />
 
+      <CreditCardSection contactId={id}/>
+
+    
       {/* Email Addresses */}
       <Section icon={Mail} title="Email Addresses">
         {isEditing ? (
@@ -273,6 +352,7 @@ export function ContactProfile() {
           </div>
         )}
       </Section>
+
 
       {/* Fax Numbers */}
       <Section icon={Printer} title="Fax Numbers">
@@ -496,6 +576,24 @@ export function ContactProfile() {
           {contact?.origin?.ip_address && <InfoItem label="Origin IP" value={contact.origin.ip_address} />}
         </div>
       </Section>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        contactName={getFullName()}
+      />
+
+      {/* Loading overlay for delete operation */}
+      {isDeleting && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
+            <span className="text-gray-900">Deleting contact...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

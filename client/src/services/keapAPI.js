@@ -6,7 +6,7 @@ const handleError = (error) => {
     } else {
         console.log(error);
     }
-    
+
     // Devolver información del error en lugar de lanzarlo
     return {
         status: error.response?.status,
@@ -119,7 +119,7 @@ class KeapAPI {
 
     }
 
-    async updateContact(id,contactInfo) {
+    async updateContact(id, contactInfo) {
         try {
 
             delete contactInfo.tag_ids;
@@ -132,7 +132,7 @@ class KeapAPI {
                 }
             });
             console.log(contactInfo)
-            const response = await api.patch(`/contacts/${id}`,contactInfo)
+            const response = await api.patch(`/contacts/${id}`, contactInfo)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
@@ -177,7 +177,7 @@ class KeapAPI {
         }
     }
 
-    async getCreditCardsByContactId(id){
+    async getCreditCardsByContactId(id) {
         try {
             const response = await api.get(`contacts/${id}/creditCards`,)
             return response.data
@@ -187,19 +187,19 @@ class KeapAPI {
         }
     }
 
-    async createCreditCard(contactId, cardData){
+    async createCreditCard(contactId, cardData) {
         try {
-          const response = await api.post(`/contacts/${contactId}/creditCards`, cardData)
-          return response.data
+            const response = await api.post(`/contacts/${contactId}/creditCards`, cardData)
+            return response.data
         } catch (error) {
             const errorInfo = handleError(error);
             return { success: false, error: errorInfo };
         }
     }
 
-    async getEmailsByContactId(contactId,queryParams){
+    async getEmailsByContactId(contactId, queryParams) {
         try {
-            const response = await api.get(`/contacts/${contactId}/emails`,{}, {
+            const response = await api.get(`/contacts/${contactId}/emails`, {}, {
                 params: queryParams
             }
 
@@ -207,89 +207,195 @@ class KeapAPI {
             return response.data
         } catch (error) {
             const errorInfo = handleError(error)
-            return {success: false,errorInfo}
+            return { success: false, errorInfo }
         }
     }
 
-    async createEmailRecord(contactId,emailData){
+    async createEmailRecord(contactId, emailData) {
         try {
-           
-         const response = await api.post(`/contacts/${contactId}/emails`, emailData)
-         return response.data
+
+            const response = await api.post(`/contacts/${contactId}/emails`, emailData)
+            return response.data
         } catch (error) {
             const errorInfo = handleError(error)
-            return {success: false,errorInfo}
+            return { success: false, errorInfo }
         }
     }
 
-    async getContactTags(contactId,queryParams){
+    async getContactTags(contactId, queryParams) {
         try {
-            
-            const response = await api.get(`contacts/${contactId}/tags`,{},{
+
+            const response = await api.get(`contacts/${contactId}/tags`, {}, {
                 params: queryParams
             })
             return response.data
         } catch (error) {
             const errorInfo = handleError(error)
-            return {success: false,errorInfo}            
+            return { success: false, errorInfo }
         }
     }
 
-    async applyTagsToContact(contactId, tagIds){
-        console.log(tagIds)
+    async applyTagsToContact(contactId, tagIds) {
         try {
-            const response = await api.post(`contacts/${contactId}/tags`, {tagIds: tagIds})
+            const response = await api.post(`contacts/${contactId}/tags`, { tagIds: tagIds })
             return response.data
         } catch (error) {
             const errorInfo = handleError(error)
-            return {success: false,errorInfo}              
+            return { success: false, errorInfo }
         }
     }
 
 
 
-    async removeTagFromContact(contactId,tagId){
+    async removeTagFromContact(contactId, tagId) {
         try {
             const response = await api.delete(`contacts/${contactId}/tags/${tagId}`)
             return response
         } catch (error) {
             const errorInfo = handleError(error)
-            return {success: false,errorInfo}             
+            return { success: false, errorInfo }
         }
     }
 
-async removeTagsFromContact(contactId, tagIds) {
-    try {
-        //tagIds should be an array of tagIds ex: [1,2,3,4]
-        const idsString = tagIds.join(',')  // convierte [181, 119, 127] → "181,119,127"
-        const response = await api.delete(`contacts/${contactId}/tags`, {
-            params: {
-                ids: idsString
-            }
-        })
-        return response
-    } catch (error) {
-        const errorInfo = handleError(error)
-        return { success: false, errorInfo }             
+    async removeTagsFromContact(contactId, tagIds) {
+        try {
+            //tagIds should be an array of tagIds ex: [1,2,3,4]
+            const idsString = tagIds.join(',')  // convierte [181, 119, 127] → "181,119,127"
+            const response = await api.delete(`contacts/${contactId}/tags`, {
+                params: {
+                    ids: idsString
+                }
+            })
+            return response
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return { success: false, errorInfo }
+        }
     }
-}
 
     //Tag endpoints-------------------------------------------------------------------------------------------  
 
 
-    async getTags(queryParams){
+    async getTags(queryParams) {
         try {
-            
-            const response = await api.get(`tags`,{
-                params: queryParams
+            // Elimina los parámetros vacíos
+            const cleanParams = Object.fromEntries(
+                Object.entries(queryParams).filter(([_, value]) => value !== null && value !== undefined && value !== '')
+            )
+
+            const response = await api.get('tags', {
+                params: cleanParams
             })
+
             return response.data
         } catch (error) {
             const errorInfo = handleError(error)
-            return {success: false,errorInfo}            
+            return { success: false, errorInfo }
+        }
+    }
+    async getTagsPaginated(url) {
+        try {
+            const response = await api.get(url)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
+
+    async createTag(tagData) {
+        try {
+            const payload = {
+                name: tagData.name,
+                description: tagData.description,
+                category: {
+                    id: tagData.category_id
+                }
+            }
+            const response = await api.post(`tags`, payload)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
         }
     }
 
+    async createTagCategory(tagCategoryData) {
+        try {
+            const response = await api.post(`tags/categories`, tagCategoryData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return { success: false, error: errorInfo }
+        }
+    }
+    async getTag(tagId) {
+        try {
+            const response = await api.get(`tags/${tagId}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return { success: false, error: errorInfo }
+        }
+    }
+    async getTaggedCompanies(tagId) {
+        try {
+            const response = await api.get(`tags/${tagId}/companies`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return { success: false, error: errorInfo }
+        }
+    }
+
+    async getTaggedContacts(tagId) {
+        try {
+            const response = await api.get(`tags/${tagId}/contacts`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return { success: false, error: errorInfo }
+        }
+    }
+
+    async applyTagToContacts(tagId, contactIds) {
+        try {
+            console.log(contactIds)
+
+            const response = await api.post(`tags/${tagId}/contacts`, contactIds)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return { success: false, error: errorInfo }
+        }
+    }
+
+    async tagRemoveTagFromContact(tagId, contactId) {
+        try {
+            const response = await api.delete(`tags/${tagId}/contacts/${contactId}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return { success: false, error: errorInfo }
+        }
+    }
+    async tagRemoveTagFromContacts(tagId, contactIds) {
+        try {
+            console.log(contactIds)
+
+            const queryString = contactIds.ids.map(id => `ids=${encodeURIComponent(id)}`).join('&')
+
+            const url = `tags/${tagId}/contacts?${queryString}` //THIS ENDPOINT IS NOT WORKING
+
+            const response = await api.delete(url)
+
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return { success: false, error: errorInfo }
+        }
+    }
 }
 
 const keapAPI = new KeapAPI()

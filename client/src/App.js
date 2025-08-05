@@ -11,6 +11,8 @@ import { ContactProfile } from './components//contacts/ContactProfile';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import { CreateContact } from './components/contacts/CreateContact';
+import { Tags } from './components/tags/Tags';
+import { TagDetails } from './components/tags/TagDetails';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -55,7 +57,17 @@ function App() {
           <ContactProfile/>
         </ProtectedRoute>
       }/>
-      
+      {/* TAG ROUTES */}
+      <Route path='/tags' element={
+        <ProtectedRoute>
+          <Tags/>
+        </ProtectedRoute>
+      }/>
+      <Route path='/tags/details/:tagId' element={
+        <ProtectedRoute>
+          <TagDetails/>
+        </ProtectedRoute>
+      }/>
     </Routes>
     <ToastContainer />
 

@@ -1,4 +1,4 @@
-import { Building2, GroupIcon, MailIcon, TagIcon, UsersIcon } from 'lucide-react';
+import { Building2, GroupIcon, MailIcon, Notebook, TagIcon, User, UsersIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -18,11 +18,18 @@ export function Sidebar() {
         </svg>
       ),
     },
-        {
+    {
       name: 'Contacts',
       href: '/contacts',
       icon: (
         <UsersIcon/>
+      ),
+    },
+    {
+      name: 'Notes',
+      href: '/notes',
+      icon: (
+        <Notebook/>
       ),
     },
     {
@@ -51,6 +58,13 @@ export function Sidebar() {
       href: '/emails',
       icon: (
          <MailIcon/>
+      ),
+    },
+    {
+      name: 'Users',
+      href: '/users',
+      icon: (
+         <User/>
       ),
     },
   ];

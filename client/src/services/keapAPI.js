@@ -485,6 +485,29 @@ class KeapAPI {
 
     }
 
+    async getUserEmailSignature(userId){
+        try {
+            const response = await api.get(`users/${userId}/signature`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+ 
+        
+    }
+
+    async createUser(userData) {
+        try {
+            const params = cleanParams(userData)
+            const response = await api.post(`users`, params)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
     async sendEmail(emailData) {
         try {
             const response = await api.post(`emails/queue`, emailData)
@@ -532,46 +555,61 @@ class KeapAPI {
         }
     }
 
-    async deleteEmailRecordsBatch(batchData){
+    async deleteEmailRecordsBatch(batchData) {
         try {
             // console.log(batchData)
-            const response = await api.post(`emails/unsync`,{ids:batchData})
+            const response = await api.post(`emails/unsync`, { ids: batchData })
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
+            return { success: false, error: errorInfo };
         }
     }
 
-    async getCompanies(){
+    async getCompanies(queryParams) {
         try {
-            const response = await api.get(`companies`)
+            queryParams.optional_properties = 'notes,fax_number'
+            console.log(queryParams)
+            const response = await api.get(`companies`, {
+                params: queryParams
+            })
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
+            return { success: false, error: errorInfo };
         }
     }
 
-    async getCompanyById(id){
+    async getCompanyById(id) {
         try {
             const response = await api.get(`companies/${id}`)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
-        }        
+            return { success: false, error: errorInfo };
+        }
     }
 
-    async createCompany(companyData){
+    async createCompany(companyData) {
         try {
-            const response = await api.post(`companies`,companyData)
+            const response = await api.post(`companies`, companyData)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
+            return { success: false, error: errorInfo };
         }
 
+    }
+
+    async updateCompany(companyId, companyData) {
+        try {
+            const CompanyD = cleanParams(companyData)
+            const response = await api.patch(`companies/${companyId}`, CompanyD)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
     }
 }
 

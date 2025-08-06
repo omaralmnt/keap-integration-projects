@@ -48,7 +48,7 @@ export function Tags() {
   // Search parameters
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(3);
   const [offset, setOffset] = useState(0);
   const [previous, setPrevious] = useState('');
   const [next, setNext] = useState('');
@@ -234,7 +234,7 @@ export function Tags() {
             <Input
               type="number"
               value={limit}
-              onChange={(e) => setLimit(parseInt(e.target.value) || 10)}
+              onChange={(e) => setLimit(parseInt(e.target.value) || 3)}
               min="1"
               max="1000"
             />

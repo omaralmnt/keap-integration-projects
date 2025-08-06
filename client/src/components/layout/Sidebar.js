@@ -1,4 +1,4 @@
-import { GroupIcon, TagIcon, UsersIcon } from 'lucide-react';
+import { Building2, GroupIcon, MailIcon, TagIcon, UsersIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -25,7 +25,13 @@ export function Sidebar() {
         <UsersIcon/>
       ),
     },
-
+    {
+      name: 'Companies',
+      href: '/companies',
+      icon: (
+          <Building2/>
+      ),
+    },
     {
       name: 'Affiliates',
       href: '/affiliates',
@@ -40,7 +46,13 @@ export function Sidebar() {
          <TagIcon/>
       ),
     },
-
+    {
+      name: 'Emails',
+      href: '/emails',
+      icon: (
+         <MailIcon/>
+      ),
+    },
   ];
 
   const isActiveRoute = (href) => {

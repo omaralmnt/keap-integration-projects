@@ -1,4 +1,9 @@
 import api from './httpClient'
+function sanitizeDate(dateStr) {
+    // Elimina cualquier ":00.000Z" extra al final
+    return dateStr.replace(/:00\.000Z$/, '');
+}
+
 
 const handleError = (error) => {
     if (error.response) {
@@ -12,6 +17,36 @@ const handleError = (error) => {
         status: error.response?.status,
         message: error.response?.data?.message || error.message || 'Unknown error'
     };
+}
+
+function cleanParams(params) {
+    const result = {};
+
+    Object.entries(params).forEach(([key, value]) => {
+        if (
+            value === undefined ||
+            value === null ||
+            (typeof value === 'string' && value.trim() === '')
+        ) {
+            return;
+        }
+
+        if (Array.isArray(value)) {
+            const filteredArray = value.filter(item =>
+                item !== undefined &&
+                item !== null &&
+                !(typeof item === 'string' && item.trim() === '')
+            );
+
+            if (filteredArray.length > 0) {
+                result[key] = filteredArray;
+            }
+        } else {
+            result[key] = value;
+        }
+    });
+
+    return result;
 }
 class KeapAPI {
 
@@ -395,6 +430,148 @@ class KeapAPI {
             const errorInfo = handleError(error)
             return { success: false, error: errorInfo }
         }
+    }
+    //Email endpoints-------------------------------------------------------------------------------------------  
+
+    async getEmails(queryParams) {
+        try {
+
+
+            const parameters = cleanParams(queryParams)
+            const response = await api.get(`emails`, {
+                params: parameters
+            })
+            return response.data
+
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return { success: false, error: errorInfo }
+        }
+    }
+
+    async getEmailById(emailId) {
+        try {
+
+            const response = await api.get(`emails/${emailId}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error)
+            return { success: false, error: errorInfo }
+        }
+    }
+    async getEmailsPaginated(url) {
+        try {
+            const response = await api.get(url)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
+
+    //User endpoints-------------------------------------------------------------------------------------------  
+    async getUsers(queryParams) {
+        try {
+            const params = cleanParams(queryParams)
+            const response = await api.get(`users`, {
+                params: params
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
+
+    async sendEmail(emailData) {
+        try {
+            const response = await api.post(`emails/queue`, emailData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async emailCreateEmailRecord(recordData) {
+        try {
+            const response = await api.post(`emails`, recordData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async deleteEmailRecord(id) {
+        try {
+            const response = await api.delete(`emails/${id}`)
+            return response
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async createEmailRecordsBatch(batchData) {
+        try {
+            console.log(batchData)
+
+            batchData.emails = batchData.emails.map(email => ({
+                ...email,
+                sent_date: sanitizeDate(email.sent_date),
+                // Asegúrate de hacerlo también con received_date, opened_date, etc. si existen
+            }));
+            const response = await api.post(`emails/sync`, batchData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async deleteEmailRecordsBatch(batchData){
+        try {
+            // console.log(batchData)
+            const response = await api.post(`emails/unsync`,{ids:batchData})
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }
+    }
+
+    async getCompanies(){
+        try {
+            const response = await api.get(`companies`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }
+    }
+
+    async getCompanyById(id){
+        try {
+            const response = await api.get(`companies/${id}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }        
+    }
+
+    async createCompany(companyData){
+        try {
+            const response = await api.post(`companies`,companyData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }
+
     }
 }
 

@@ -565,7 +565,7 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
-
+// companies-------------------------------------------------------------------------------------------------------***
     async getCompanies(queryParams) {
         try {
             queryParams.optional_properties = 'notes,fax_number'
@@ -611,6 +611,60 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
+ // Note endpoints-------------------------------------------------------------------
+
+    async getNotes(queryParams){
+        try {
+            const response = await api.get(`notes`,{
+                params: queryParams
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }     
+    }
+
+    async createNote(noteData){
+        try {
+            const response = await api.post(`notes`,noteData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };               
+        }
+    }
+
+    async deleteNote(noteId){
+        try {
+            const response = await api.delete(`notes/${noteId}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }
+    }
+    async updateNote(noteId,noteData) {
+         try {
+            noteData = cleanParams(noteData)
+            const response = await api.patch(`notes/${noteId}`,noteData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }       
+    }
+
+    async replaceNote(noteId,noteData) {
+         try {
+            const response = await api.put(`notes/${noteId}`,noteData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }       
+    }
+
 }
 
 const keapAPI = new KeapAPI()

@@ -19,6 +19,7 @@ import { Companies } from './components/companies/Companies';
 import { Users } from './components/users/Users';
 import { Notes } from './components/notes/Notes';
 import { Appointments } from './components/appointments/Appointments';
+import { Tasks } from './components/tasks/Tasks';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -105,12 +106,18 @@ function App() {
           <Notes/>
         </ProtectedRoute>
       }/>     
-      {/* NOTE ROUTES --------------------------------------------*/}
+      {/* APPTS ROUTES --------------------------------------------*/}
        <Route path='/appointments' element={
         <ProtectedRoute>
           <Appointments/>
         </ProtectedRoute>
-      }/>              
+      }/>
+      {/* TASKS ROUTES --------------------------------------------*/}
+       <Route path='/tasks' element={
+        <ProtectedRoute>
+          <Tasks/>
+        </ProtectedRoute>
+      }/>                    
     </Routes>
     <ToastContainer />
 

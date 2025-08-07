@@ -718,7 +718,7 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
-    
+
     async deleteAppointment(apptId, apptData) {
         try {
             const response = await api.delete(`appointments/${apptId}`, apptData)
@@ -728,6 +728,35 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
+
+    // tasks endpoints------------------------- 
+    async getTasks(queryParams) {
+        try {
+            const response = await api.get(`tasks`, {
+                params: queryParams
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async createTask(taskData){
+        try {
+            
+            taskData = cleanParams(taskData)
+            console.log(taskData)
+            const response = await api.post('tasks',taskData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }
+    }
+
+
+
 }
 
 const keapAPI = new KeapAPI()

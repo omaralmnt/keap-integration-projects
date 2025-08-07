@@ -18,6 +18,7 @@ import { EmailCompose } from './components/emails/EmailCompose';
 import { Companies } from './components/companies/Companies';
 import { Users } from './components/users/Users';
 import { Notes } from './components/notes/Notes';
+import { Appointments } from './components/appointments/Appointments';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -103,7 +104,13 @@ function App() {
         <ProtectedRoute>
           <Notes/>
         </ProtectedRoute>
-      }/>           
+      }/>     
+      {/* NOTE ROUTES --------------------------------------------*/}
+       <Route path='/appointments' element={
+        <ProtectedRoute>
+          <Appointments/>
+        </ProtectedRoute>
+      }/>              
     </Routes>
     <ToastContainer />
 

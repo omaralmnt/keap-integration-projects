@@ -485,7 +485,7 @@ class KeapAPI {
 
     }
 
-    async getUserEmailSignature(userId){
+    async getUserEmailSignature(userId) {
         try {
             const response = await api.get(`users/${userId}/signature`)
             return response.data
@@ -493,8 +493,8 @@ class KeapAPI {
             const errorInfo = handleError(error);
             return { success: false, error: errorInfo };
         }
- 
-        
+
+
     }
 
     async createUser(userData) {
@@ -566,7 +566,7 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
-// companies-------------------------------------------------------------------------------------------------------***
+    // companies-------------------------------------------------------------------------------------------------------***
     async getCompanies(queryParams) {
         try {
             queryParams.optional_properties = 'notes,fax_number'
@@ -612,60 +612,122 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
- // Note endpoints-------------------------------------------------------------------
+    // Note endpoints-------------------------------------------------------------------
 
-    async getNotes(queryParams){
+    async getNotes(queryParams) {
         try {
-            const response = await api.get(`notes`,{
+            const response = await api.get(`notes`, {
                 params: queryParams
             })
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
-        }     
-    }
-
-    async createNote(noteData){
-        try {
-            const response = await api.post(`notes`,noteData)
-            return response.data
-        } catch (error) {
-            const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };               
+            return { success: false, error: errorInfo };
         }
     }
 
-    async deleteNote(noteId){
+    async createNote(noteData) {
+        try {
+            const response = await api.post(`notes`, noteData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async deleteNote(noteId) {
         try {
             const response = await api.delete(`notes/${noteId}`)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
+            return { success: false, error: errorInfo };
         }
     }
-    async updateNote(noteId,noteData) {
-         try {
+    async updateNote(noteId, noteData) {
+        try {
             noteData = cleanParams(noteData)
-            const response = await api.patch(`notes/${noteId}`,noteData)
+            const response = await api.patch(`notes/${noteId}`, noteData)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
-        }       
+            return { success: false, error: errorInfo };
+        }
     }
 
-    async replaceNote(noteId,noteData) {
-         try {
-            const response = await api.put(`notes/${noteId}`,noteData)
+    async replaceNote(noteId, noteData) {
+        try {
+            const response = await api.put(`notes/${noteId}`, noteData)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
-        }       
+            return { success: false, error: errorInfo };
+        }
     }
 
+    async getAppointments(queryParams) {
+        try {
+            const response = await api.get(`appointments/`, {
+                params: queryParams
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getAppointmentById(id) {
+        try {
+            const response = await api.get(`appointments/${id}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async createAppointment(apptData) {
+        try {
+            const response = await api.post(`appointments/`, apptData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async updateAppointment(apptId, apptData) {
+        try {
+            apptData = cleanParams(apptData)
+            const response = await api.patch(`appointments/${apptId}`, apptData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async replaceAppointment(apptId, apptData) {
+        try {
+            const response = await api.put(`appointments/${apptId}`, apptData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+    
+    async deleteAppointment(apptId, apptData) {
+        try {
+            const response = await api.delete(`appointments/${apptId}`, apptData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
 }
 
 const keapAPI = new KeapAPI()

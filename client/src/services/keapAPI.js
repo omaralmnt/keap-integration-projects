@@ -510,6 +510,7 @@ class KeapAPI {
     }
     async sendEmail(emailData) {
         try {
+            console.log(emailData)
             const response = await api.post(`emails/queue`, emailData)
             return response.data
         } catch (error) {

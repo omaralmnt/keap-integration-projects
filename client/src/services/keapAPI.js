@@ -742,20 +742,20 @@ class KeapAPI {
         }
     }
 
-    async createTask(taskData){
+    async createTask(taskData) {
         try {
-            
+
             taskData = cleanParams(taskData)
             console.log(taskData)
-            const response = await api.post('tasks',taskData)
+            const response = await api.post('tasks', taskData)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
+            return { success: false, error: errorInfo };
         }
     }
 
-    
+
     async updateTask(taskId, taskData) {
         try {
             taskData = cleanParams(taskData)
@@ -777,17 +777,108 @@ class KeapAPI {
         }
     }
 
-    async deleteTask(taskId){
+    async deleteTask(taskId) {
         try {
             const response = await api.delete(`tasks/${taskId}`)
             return response
         } catch (error) {
-             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };           
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+    // Files endpoints---------------------------------------------------
+
+    async getFiles(queryParams) {
+        queryParams = cleanParams(queryParams)
+        try {
+            const response = await api.get(`files/`, {
+                params: queryParams
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+    async getFileById(fileId) {
+
+        try {
+            const response = await api.get(`files/${fileId}`, {
+                params: {
+                    optional_properties: 'file_data'
+                }
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+    async getFilesPaginated(url) {
+        try {
+            const response = await api.get(url)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
+    async uploadFile(fileData) {
+        try {
+            console.log(fileData)
+            delete fileData?.public
+            const response = await api.post(`files`, fileData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
+    async deleteFile(fileId) {
+
+        try {
+            const response = await api.delete(`files/${fileId}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
         }
     }
 
+    async replaceFile(fileId, fileData) {
+        try {
+            delete fileData?.public
 
+            const response = await api.put(`files/${fileId}`, fileData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getSettings(){
+        try {
+            const response = await api.get(`setting/application/configuration/`)
+            return response.data            
+        } catch (error) {
+             const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };           
+        }
+
+    }
+
+    async getApplicationStatus(){
+        try {
+            const response = await api.get(`setting/application/enabled`)
+            return response.data                
+        } catch (error) {
+             const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };              
+        }
+    }
 
 }
 

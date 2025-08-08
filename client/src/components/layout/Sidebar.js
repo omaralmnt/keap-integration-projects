@@ -1,6 +1,7 @@
-import { Building2, Calendar, FolderArchive, GroupIcon, ListTodo, MailIcon, Notebook, TagIcon, User, UsersIcon } from 'lucide-react';
+import { Building2, Calendar, FolderArchive, GroupIcon, ListTodo, MailIcon, Notebook, Settings, TagIcon, User, UsersIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { ApplicationSettings } from '../settings/ApplicationSettings';
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -87,6 +88,14 @@ export function Sidebar() {
       href: '/files',
       icon: (
          <FolderArchive/>
+      ),
+    },  
+    
+        {
+      name: 'Settings',
+      href: '/application/settings',
+      icon: (
+         <Settings/>
       ),
     },    
   ];

@@ -21,6 +21,7 @@ import { Notes } from './components/notes/Notes';
 import { Appointments } from './components/appointments/Appointments';
 import { Tasks } from './components/tasks/Tasks';
 import { Files } from './components/files/Files';
+import { ApplicationSettings } from './components/settings/ApplicationSettings';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -123,6 +124,12 @@ function App() {
        <Route path='/files' element={
         <ProtectedRoute>
           <Files/>
+        </ProtectedRoute>
+      }/>  
+      {/* APPLICATION ROUTES --------------------------------------------*/}
+       <Route path='/application/settings' element={
+        <ProtectedRoute>
+          <ApplicationSettings/>
         </ProtectedRoute>
       }/>                             
     </Routes>

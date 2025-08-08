@@ -1,4 +1,4 @@
-import { Building2, Calendar, GroupIcon, ListTodo, MailIcon, Notebook, TagIcon, User, UsersIcon } from 'lucide-react';
+import { Building2, Calendar, FolderArchive, GroupIcon, ListTodo, MailIcon, Notebook, TagIcon, User, UsersIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -74,13 +74,7 @@ export function Sidebar() {
          <Calendar/>
       ),
     },
-    {
-      name: 'Appointments',
-      href: '/appointments',
-      icon: (
-         <Calendar/>
-      ),
-    },
+
     {
       name: 'Tasks',
       href: '/tasks',
@@ -88,6 +82,13 @@ export function Sidebar() {
          <ListTodo/>
       ),
     },
+    {
+      name: 'Files',
+      href: '/files',
+      icon: (
+         <FolderArchive/>
+      ),
+    },    
   ];
 
   const isActiveRoute = (href) => {

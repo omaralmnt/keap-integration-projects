@@ -755,6 +755,38 @@ class KeapAPI {
         }
     }
 
+    
+    async updateTask(taskId, taskData) {
+        try {
+            taskData = cleanParams(taskData)
+            const response = await api.patch(`appointments/${taskId}`, taskData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async replaceTask(taskId, taskData) {
+        try {
+            const response = await api.put(`tasks/${taskId}`, taskData)
+            return response
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async deleteTask(taskId){
+        try {
+            const response = await api.delete(`tasks/${taskId}`)
+            return response
+        } catch (error) {
+             const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };           
+        }
+    }
+
 
 
 }

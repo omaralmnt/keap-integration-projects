@@ -20,6 +20,7 @@ import { Users } from './components/users/Users';
 import { Notes } from './components/notes/Notes';
 import { Appointments } from './components/appointments/Appointments';
 import { Tasks } from './components/tasks/Tasks';
+import { Files } from './components/files/Files';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -117,7 +118,13 @@ function App() {
         <ProtectedRoute>
           <Tasks/>
         </ProtectedRoute>
-      }/>                    
+      }/> 
+      {/* TASKS ROUTES --------------------------------------------*/}
+       <Route path='/files' element={
+        <ProtectedRoute>
+          <Files/>
+        </ProtectedRoute>
+      }/>                             
     </Routes>
     <ToastContainer />
 

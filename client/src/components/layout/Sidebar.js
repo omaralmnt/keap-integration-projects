@@ -1,4 +1,4 @@
-import { Building2, Calendar, FolderArchive, GroupIcon, ListTodo, MailIcon, Notebook, Package, Settings, TagIcon, User, UsersIcon } from 'lucide-react';
+import { Building2, Calendar, FolderArchive, GroupIcon, ListTodo, MailIcon, Notebook, Package, Settings, TagIcon, User, UsersIcon, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ApplicationSettings } from '../settings/ApplicationSettings';
@@ -97,7 +97,13 @@ export function Sidebar() {
          <FolderArchive/>
       ),
     },  
-    
+    {
+      name: 'Merchants',
+      href: '/merchants',
+      icon: (
+         <Wallet/>
+      ),
+    },      
         {
       name: 'Settings',
       href: '/application/settings',

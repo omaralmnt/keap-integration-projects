@@ -858,7 +858,7 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
-
+    //APP endpoints-------------------------
     async getSettings() {
         try {
             const response = await api.get(`setting/application/configuration/`)
@@ -879,6 +879,7 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
+    //PRoduct endpoints-------------------------
 
     async getProducts(queryParams) {
         try {
@@ -946,6 +947,52 @@ class KeapAPI {
 
         }
     }
+
+    async uploadProductImage(productId, imageDetails) {
+        try {
+            const response = await api.post(`products/${productId}/image`, imageDetails)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+
+        }
+    }
+
+    async createProductSubscription(productId, subscriptionData) {
+
+        try {
+            const response = await api.post(`products/${productId}/subscriptions`, subscriptionData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async deleteProductSubscription(productId, subscriptionId) {
+        try {
+            const response = await api.delete(`products/${productId}/subscriptions/${subscriptionId}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    //MErchant endpoints
+
+    async getMerchants() {
+        try {
+            const response = await api.get(`merchants`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
+
 }
 
 const keapAPI = new KeapAPI()

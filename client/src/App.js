@@ -22,6 +22,8 @@ import { Appointments } from './components/appointments/Appointments';
 import { Tasks } from './components/tasks/Tasks';
 import { Files } from './components/files/Files';
 import { ApplicationSettings } from './components/settings/ApplicationSettings';
+import { Products } from './components/products/Products';
+import { ProductDetails } from './components/products/ProductDetails';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -130,6 +132,19 @@ function App() {
        <Route path='/application/settings' element={
         <ProtectedRoute>
           <ApplicationSettings/>
+        </ProtectedRoute>
+      }/>        
+
+      {/* Products ROUTES --------------------------------------------*/}
+       <Route path='/products' element={
+        <ProtectedRoute>
+          <Products/>
+        </ProtectedRoute>
+      }/>      
+
+       <Route path='/products/details/:productId' element={
+        <ProtectedRoute>
+          <ProductDetails/>
         </ProtectedRoute>
       }/>                             
     </Routes>

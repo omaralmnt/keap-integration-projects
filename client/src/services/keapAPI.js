@@ -759,7 +759,7 @@ class KeapAPI {
     async updateTask(taskId, taskData) {
         try {
             taskData = cleanParams(taskData)
-            const response = await api.patch(`appointments/${taskId}`, taskData)
+            const response = await api.patch(`tasks/${taskId}`, taskData)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
@@ -859,27 +859,93 @@ class KeapAPI {
         }
     }
 
-    async getSettings(){
+    async getSettings() {
         try {
             const response = await api.get(`setting/application/configuration/`)
-            return response.data            
+            return response.data
         } catch (error) {
-             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };           
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
         }
 
     }
 
-    async getApplicationStatus(){
+    async getApplicationStatus() {
         try {
             const response = await api.get(`setting/application/enabled`)
-            return response.data                
+            return response.data
         } catch (error) {
-             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };              
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
         }
     }
 
+    async getProducts(queryParams) {
+        try {
+
+            console.log(queryParams)
+            const response = await api.get(`products`, {
+                params: queryParams
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+    async getProductsPaginated(url) {
+        try {
+            const response = await api.get(url)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
+
+    async createProduct(productData) {
+        try {
+            const response = await api.post('products', productData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getProductById(productId) {
+        try {
+            const response = await api.get(`products/${productId}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async updateProduct(productId, productData) {
+        try {
+            productData = cleanParams(productData)
+            const response = await api.patch(`products/${productId}`, productData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+
+        }
+    }
+
+    async deleteProduct(productId) {
+        try {
+            const response = await api.delete(`products/${productId}`)
+            return response
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+
+        }
+    }
 }
 
 const keapAPI = new KeapAPI()

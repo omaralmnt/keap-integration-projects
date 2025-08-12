@@ -1100,7 +1100,7 @@ class KeapAPI {
 
             paymentData = cleanParams(paymentData)
             console.log(paymentData)
-            const response = await api.post(`orders/${orderId}/payments`,paymentData)
+            const response = await api.post(`orders/${orderId}/payments`, paymentData)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
@@ -1108,17 +1108,48 @@ class KeapAPI {
         }
     }
 
-    async getOrderTransactions(orderId){
+    async getOrderTransactions(orderId) {
 
         try {
             const response = await api.get(`orders/${orderId}/transactions`)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
+            return { success: false, error: errorInfo };
         }
     }
 
+    async getSubscriptions(queryParams) {
+        try {
+            console.log(`dsdss`,queryParams)
+            const response = await api.get(`subscriptions`, { params:  queryParams  })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getSubscriptionPaginated(url) {
+        try {
+            const response = await api.get(url)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
+
+    async createSubscription(subscriptionData) {
+        try {
+            const response = await api.post(`subscriptions`, subscriptionData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
 
 
 }

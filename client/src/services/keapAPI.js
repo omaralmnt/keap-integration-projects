@@ -980,7 +980,7 @@ class KeapAPI {
         }
     }
 
-    //MErchant endpoints
+    //Merchant endpoints
 
     async getMerchants() {
         try {
@@ -992,8 +992,138 @@ class KeapAPI {
         }
 
     }
+    //Ecommerce endpoints
+    async getOrders(queryParams) {
+        try {
+
+            console.log('rev', queryParams)
+            const response = await api.get(`orders`, { params: queryParams })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+
+    }
+
+    async getOrdersPaginated(url) {
+        try {
+            const response = await api.get(url)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
+
+    async createOrder(orderData) {
+        try {
+            const response = await api.post('orders', orderData)
+            return response.data
+
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async deleteOrder(orderId) {
+        try {
+            const response = await api.delete(`orders/${orderId}`)
+            return response
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getOrderById(orderId) {
+        try {
+            const response = await api.get(`orders/${orderId}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async createOrderItem(orderId, itemData) {
+        try {
+
+            console.log(itemData, 'tii')
+            const response = await api.post(`orders/${orderId}/items`, itemData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+    async deleteOrderItem(orderId, itemId) {
+        try {
+
+            const response = await api.delete(`orders/${orderId}/items/${itemId}`)
+            return response
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async replaceOrderPaymentPlan(orderId, paymentPlanData) {
+        try {
+            console.log(paymentPlanData)
+            if (paymentPlanData.payment_gateway.use_default == true) {
+                delete paymentPlanData.payment_gateway.merchant_account_id
+            }
+            const response = await api.put(`orders/${orderId}/paymentPlan/`, paymentPlanData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getOrderPayments(orderId) {
+        try {
+            const response = await api.get(`orders/${orderId}/payments`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async createOrderPayment(orderId, paymentData) {
+        try {
+
+            paymentData = cleanParams(paymentData)
+            console.log(paymentData)
+            const response = await api.post(`orders/${orderId}/payments`,paymentData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getOrderTransactions(orderId){
+
+        try {
+            const response = await api.get(`orders/${orderId}/transactions`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }
+    }
+
+
 
 }
+
+
 
 const keapAPI = new KeapAPI()
 export default keapAPI

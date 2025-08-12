@@ -1,4 +1,4 @@
-import { Building2, Calendar, FolderArchive, GroupIcon, ListTodo, MailIcon, Notebook, Package, Settings, TagIcon, User, UsersIcon, Wallet } from 'lucide-react';
+import { Building2, Calendar, FolderArchive, GroupIcon, ListTodo, MailIcon, Notebook, Package, Settings, SquareStack, TagIcon, User, UsersIcon, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ApplicationSettings } from '../settings/ApplicationSettings';
@@ -24,6 +24,13 @@ export function Sidebar() {
       href: '/contacts',
       icon: (
         <UsersIcon/>
+      ),
+    },
+    {
+      name: 'Orders',
+      href: '/orders',
+      icon: (
+        <SquareStack/>
       ),
     },
     {

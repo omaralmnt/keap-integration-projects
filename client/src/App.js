@@ -25,6 +25,9 @@ import { ApplicationSettings } from './components/settings/ApplicationSettings';
 import { Products } from './components/products/Products';
 import { ProductDetails } from './components/products/ProductDetails';
 import { Merchants } from './components/merchants/Merchants';
+import { Orders } from './components/orders/Orders';
+import { CreateOrder } from './components/orders/CreateOrder';
+import { OrderDetails } from './components/orders/OrderDetails';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -154,7 +157,23 @@ function App() {
         <ProtectedRoute>
           <Merchants/>
         </ProtectedRoute>
-      }/>                                
+      }/>  
+ {/* orders rouutes */}
+       <Route path='/orders' element={
+        <ProtectedRoute>
+          <Orders/>
+        </ProtectedRoute>
+      }/>       
+       <Route path='/orders/create' element={
+        <ProtectedRoute>
+          <CreateOrder/>
+        </ProtectedRoute>
+      }/>        
+    <Route path='/orders/details/:orderId' element={
+        <ProtectedRoute>
+          <OrderDetails/>
+        </ProtectedRoute>
+      }/>                              
     </Routes>
     <ToastContainer />
 

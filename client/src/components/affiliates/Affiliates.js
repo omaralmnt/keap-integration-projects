@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '../ui/Button';
+import keapAPI from '../../services/keapAPI';
+import { useNavigate } from 'react-router-dom';
 
 // Input component
 const Input = ({ 
@@ -7,399 +9,523 @@ const Input = ({
   placeholder, 
   value, 
   onChange, 
-  error = false,
-  disabled = false,
   className = '',
   ...props 
 }) => {
-  const baseClasses = 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm';
-  const errorClasses = error ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : '';
-  const disabledClasses = disabled ? 'bg-gray-50 cursor-not-allowed' : '';
-  
   return (
     <input
       type={type}
       placeholder={placeholder}
       value={value}
       onChange={onChange}
-      disabled={disabled}
-      className={`${baseClasses} ${errorClasses} ${disabledClasses} ${className}`}
+      className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${className}`}
       {...props}
     />
   );
 };
 
-// Status Badge Component
-const StatusBadge = ({ status }) => {
-  const getStatusStyles = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'suspended':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+// Main Affiliates Component
+export function Affiliates() {
+  const navigate = useNavigate();
+
+  const [affiliates, setAffiliates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Modal states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  
+  // Search parameters
+  const [code, setCode] = useState('');
+  const [contactId, setContactId] = useState('');
+  const [name, setName] = useState('');
+  const [parentId, setParentId] = useState('');
+  const [programId, setProgramId] = useState('');
+  const [status, setStatus] = useState('');
+  const [limit, setLimit] = useState(3);
+  const [offset, setOffset] = useState(0);
+  const [order, setOrder] = useState('id');
+  const [orderDirection, setOrderDirection] = useState('DESCENDING');
+  const [previous, setPrevious] = useState('');
+  const [next, setNext] = useState('');
+
+  // Create affiliate form states
+  const [newAffiliateData, setNewAffiliateData] = useState({
+    code: '',
+    contact_id: '',
+    name: '',
+    notify_on_lead: false,
+    notify_on_sale: false,
+    parent_id: '',
+    password: '',
+    status: 'active',
+    track_leads_for: 30
+  });
+
+  // Pagination function
+  const handlePagination = async (action) => {
+    console.log('hi');
+    let response;
+    if (action === 'next') {
+      response = await keapAPI.getAffiliatesPaginated(next);
+      setOffset(Number(offset) + Number(limit));
+    } else {
+      response = await keapAPI.getAffiliatesPaginated(previous);
+      const addedOffset = Number(offset) - Number(limit);
+      if (addedOffset > -1) {
+        setOffset(addedOffset);
+      }
+    }
+    setAffiliates(response.affiliates);
+    setNext(response.next);
+    setPrevious(response.previous);
+  };
+
+  // Create affiliate function
+  const handleCreateAffiliate = async () => {
+    try {
+      setIsCreating(true);
+      
+      // Prepare data for API
+      const affiliatePayload = {
+        code: newAffiliateData.code,
+        contact_id: parseInt(newAffiliateData.contact_id),
+        name: newAffiliateData.name || undefined,
+        notify_on_lead: newAffiliateData.notify_on_lead,
+        notify_on_sale: newAffiliateData.notify_on_sale,
+        parent_id: newAffiliateData.parent_id ? parseInt(newAffiliateData.parent_id) : undefined,
+        password: newAffiliateData.password,
+        status: newAffiliateData.status,
+        track_leads_for: parseInt(newAffiliateData.track_leads_for)
+      };
+
+      await keapAPI.createAffiliate(affiliatePayload);
+      
+      // Reset form and close modal
+      setNewAffiliateData({
+        code: '',
+        contact_id: '',
+        name: '',
+        notify_on_lead: false,
+        notify_on_sale: false,
+        parent_id: '',
+        password: '',
+        status: 'active',
+        track_leads_for: 30
+      });
+      setIsModalOpen(false);
+      
+      // Refresh the affiliates list
+      handleSearch();
+      
+    } catch (error) {
+      console.error('Error creating affiliate:', error);
+      alert('Error creating affiliate. Please try again.');
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyles(status)}`}>
-      {status || 'Unknown'}
-    </span>
-  );
-};
-
-// Main Affiliates Component
-export function Affiliates() {
-  const [affiliates, setAffiliates] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-
-  // Mock data - TÚ IMPLEMENTARÁS LA LÓGICA DE API
-  useEffect(() => {
-    setLoading(true);
-    // TODO: Implementar fetchAffiliates()
-    setTimeout(() => {
-      const mockAffiliates = [
-        {
-          id: 1,
-          contact_id: 12345,
-          first_name: 'John',
-          last_name: 'Doe',
-          email: 'john@example.com',
-          phone: '555-0123',
-          affiliate_code: 'JOHN123',
-          status: 'active',
-          commission_type: 'percentage',
-          commission_amount: '10.00',
-          total_commissions: 1250.50,
-          total_referrals: 45,
-          created_date: '2024-01-15',
-        },
-        {
-          id: 2,
-          contact_id: 12346,
-          first_name: 'Sarah',
-          last_name: 'Johnson',
-          email: 'sarah@example.com',
-          phone: '555-0124',
-          affiliate_code: 'SARAH456',
-          status: 'pending',
-          commission_type: 'fixed',
-          commission_amount: '25.00',
-          total_commissions: 0,
-          total_referrals: 0,
-          created_date: '2024-02-20',
-        },
-        {
-          id: 3,
-          contact_id: 12347,
-          first_name: 'Mike',
-          last_name: 'Chen',
-          email: 'mike@example.com',
-          phone: '555-0125',
-          affiliate_code: 'MIKE789',
-          status: 'active',
-          commission_type: 'percentage',
-          commission_amount: '15.00',
-          total_commissions: 850.25,
-          total_referrals: 28,
-          created_date: '2024-01-30',
-        },
-        {
-          id: 4,
-          contact_id: 12348,
-          first_name: 'Lisa',
-          last_name: 'Rodriguez',
-          email: 'lisa@example.com',
-          phone: '555-0126',
-          affiliate_code: 'LISA321',
-          status: 'inactive',
-          commission_type: 'percentage',
-          commission_amount: '12.00',
-          total_commissions: 320.75,
-          total_referrals: 12,
-          created_date: '2023-12-10',
-        },
-      ];
-      setAffiliates(mockAffiliates);
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  // Filter affiliates based on search and status
-  const filteredAffiliates = affiliates.filter(affiliate => {
-    const matchesSearch = 
-      affiliate.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      affiliate.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      affiliate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      affiliate.affiliate_code.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || affiliate.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(filteredAffiliates.length / itemsPerPage);
-  const paginatedAffiliates = filteredAffiliates.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  // Handler functions - TÚ IMPLEMENTARÁS LA LÓGICA
-  const handleViewAffiliate = (affiliate) => {
-    console.log('View affiliate:', affiliate);
-    // TODO: Implementar navegación a detalle del affiliate
+  const handleInputChange = (field, value) => {
+    setNewAffiliateData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleRefresh = () => {
-    console.log('Refresh affiliates list');
-    // TODO: Implementar refresh de la lista
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
+  // Search function
+  const handleSearch = async () => {
+    try {
+      setLoading(true);
+
+      const queryParams = {
+        code,
+        contact_id: contactId,
+        name,
+        parent_id: parentId,
+        program_id: programId,
+        status,
+        limit,
+        offset,
+        order,
+        order_direction: orderDirection
+      };
+
+      const data = await keapAPI.getAffiliates(queryParams);
+      console.log(data);
+      setAffiliates(data.affiliates);
+      setPrevious(data.previous);
+      setNext(data.next);
+ 
+    } catch (error) {
+      console.log(error);   
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const newAffiliate = () => {
+    setIsModalOpen(true);
+  };
+
+
+
+  const viewAffiliate = (affiliateId) => {
+    navigate(`/affiliates/profile/${affiliateId}`);
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="sm:flex sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Affiliates</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            View and manage your affiliate partners
-          </p>
+      <h1 className="text-2xl font-bold text-gray-900">Affiliates</h1>
+
+      {/* Search Form */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <Input
+            placeholder="Code"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+          <Input
+            placeholder="Contact ID"
+            value={contactId}
+            onChange={(e) => setContactId(e.target.value)}
+          />
+          <Input
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </div>
-        <div className="mt-4 sm:mt-0">
-          <Button onClick={handleRefresh} variant="secondary">
-            Refresh
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <Input
+            placeholder="Parent ID"
+            value={parentId}
+            onChange={(e) => setParentId(e.target.value)}
+          />
+          <Input
+            placeholder="Program ID"
+            value={programId}
+            onChange={(e) => setProgramId(e.target.value)}
+          />
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Status</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            >
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Limit</label>
+            <Input
+              type="number"
+              value={limit}
+              onChange={(e) => setLimit(parseInt(e.target.value) || 50)}
+              min="1"
+              max="1000"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Offset</label>
+            <Input
+              type="number"
+              value={offset}
+              onChange={(e) => setOffset(parseInt(e.target.value) || 0)}
+              min="0"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Order</label>
+            <select
+              value={order}
+              onChange={(e) => setOrder(e.target.value)}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            >
+              <option value="id">ID</option>
+              <option value="name">Name</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Direction</label>
+            <select
+              value={orderDirection}
+              onChange={(e) => setOrderDirection(e.target.value)}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            >
+              <option value="ASCENDING">ASC</option>
+              <option value="DESCENDING">DESC</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex space-x-3">
+          <Button onClick={handleSearch} disabled={loading}>
+            {loading ? 'Searching...' : 'Search'}
+          </Button>
+          <Button variant="secondary" onClick={newAffiliate}>
+            Create New Affiliate
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Search Affiliates
-            </label>
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, email, or code..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status Filter
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="inactive">Inactive</option>
-              <option value="suspended">Suspended</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setSearchTerm('');
-                setStatusFilter('all');
-                setCurrentPage(1);
-              }}
-            >
-              Clear Filters
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Affiliates Table */}
+      {/* Results */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-4 py-3 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
-            Affiliates ({filteredAffiliates.length})
+            Results ({affiliates.length})
           </h3>
         </div>
 
         {loading ? (
           <div className="p-6 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-sm text-gray-500">Loading affiliates...</p>
+            <p className="mt-2 text-sm text-gray-500">Loading...</p>
           </div>
-        ) : paginatedAffiliates.length === 0 ? (
+        ) : affiliates.length === 0 ? (
           <div className="p-6 text-center">
-            <p className="text-gray-500">No affiliates found matching your criteria.</p>
+            <p className="text-gray-500">No affiliates found. Click search to start.</p>
           </div>
         ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Affiliate
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Code
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Commission
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Performance
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Joined
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parent ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notifications</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {affiliates.map((affiliate) => (
+                  <tr key={affiliate.id}>
+                    <td className="px-4 py-4 text-sm text-gray-900">{affiliate.id}</td>
+                    <td className="px-4 py-4 text-sm text-gray-900">{affiliate.code}</td>
+                    <td className="px-4 py-4 text-sm text-gray-900">{affiliate.name}</td>
+                    <td className="px-4 py-4 text-sm text-gray-900">{affiliate.contact_id || 'N/A'}</td>
+                    <td className="px-4 py-4 text-sm text-gray-900">{affiliate.parent_id || 'N/A'}</td>
+                    <td className="px-4 py-4 text-sm">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        affiliate.status === 'active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {affiliate.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-sm text-gray-500">
+                      <div className="text-xs">
+                        {affiliate.notify_on_lead && <span className="block">• Lead</span>}
+                        {affiliate.notify_on_sale && <span className="block">• Sale</span>}
+                        {!affiliate.notify_on_lead && !affiliate.notify_on_sale && 'None'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-sm text-gray-900">
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => viewAffiliate(affiliate.id)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        View
+                      </Button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedAffiliates.map((affiliate) => (
-                    <tr key={affiliate.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {affiliate.first_name} {affiliate.last_name}
-                          </div>
-                          <div className="text-sm text-gray-500">{affiliate.email}</div>
-                          {affiliate.phone && (
-                            <div className="text-sm text-gray-500">{affiliate.phone}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">
-                          {affiliate.affiliate_code}
-                        </code>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={affiliate.status} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {affiliate.commission_type === 'percentage' 
-                          ? `${affiliate.commission_amount}%`
-                          : `$${affiliate.commission_amount}`
-                        }
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          ${affiliate.total_commissions?.toFixed(2) || '0.00'}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {affiliate.total_referrals} referrals
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(affiliate.created_date).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleViewAffiliate(affiliate)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                <div className="flex-1 flex justify-between sm:hidden">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      Showing{' '}
-                      <span className="font-medium">
-                        {(currentPage - 1) * itemsPerPage + 1}
-                      </span>{' '}
-                      to{' '}
-                      <span className="font-medium">
-                        {Math.min(currentPage * itemsPerPage, filteredAffiliates.length)}
-                      </span>{' '}
-                      of{' '}
-                      <span className="font-medium">{filteredAffiliates.length}</span> results
-                    </p>
-                  </div>
-                  <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            currentPage === page
-                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                      
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
-                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
-                    </nav>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
+        {/* Pagination */}
+        {!loading && affiliates.length > 0 && (
+          <div className="bg-white px-4 py-3 border-t border-gray-200">
+            <div className="flex items-center justify-center space-x-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={offset === 0}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium"
+                onClick={() => handlePagination('previous')}
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={affiliates.length < limit}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium"
+                onClick={() => handlePagination('next')}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         )}
       </div>
+
+      {/* Create Affiliate Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Create New Affiliate</h3>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleCreateAffiliate(); }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Code <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={newAffiliateData.code}
+                      onChange={(e) => handleInputChange('code', e.target.value)}
+                      placeholder="Affiliate code"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Contact ID <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      value={newAffiliateData.contact_id}
+                      onChange={(e) => handleInputChange('contact_id', e.target.value)}
+                      placeholder="Contact ID"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <Input
+                      value={newAffiliateData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      placeholder="Affiliate name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="password"
+                      value={newAffiliateData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      placeholder="Password"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Parent ID</label>
+                    <Input
+                      type="number"
+                      value={newAffiliateData.parent_id}
+                      onChange={(e) => handleInputChange('parent_id', e.target.value)}
+                      placeholder="Parent affiliate ID"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Track Leads For (days)</label>
+                    <Input
+                      type="number"
+                      value={newAffiliateData.track_leads_for}
+                      onChange={(e) => handleInputChange('track_leads_for', e.target.value)}
+                      placeholder="30"
+                      min="1"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={newAffiliateData.status}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="flex items-center">
+                    <input
+                      id="notify_on_lead"
+                      type="checkbox"
+                      checked={newAffiliateData.notify_on_lead}
+                      onChange={(e) => handleInputChange('notify_on_lead', e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="notify_on_lead" className="ml-2 block text-sm text-gray-700">
+                      Notify on Lead
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      id="notify_on_sale"
+                      type="checkbox"
+                      checked={newAffiliateData.notify_on_sale}
+                      onChange={(e) => handleInputChange('notify_on_sale', e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="notify_on_sale" className="ml-2 block text-sm text-gray-700">
+                      Notify on Sale
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end space-x-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsModalOpen(false)}
+                    disabled={isCreating}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isCreating || !newAffiliateData.code || !newAffiliateData.contact_id || !newAffiliateData.password}
+                  >
+                    {isCreating ? 'Creating...' : 'Create Affiliate'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

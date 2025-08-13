@@ -54,13 +54,13 @@ export function Sidebar() {
           <Building2/>
       ),
     },
-    // {
-    //   name: 'Affiliates',
-    //   href: '/affiliates',
-    //   icon: (
-    //       <GroupIcon/>
-    //   ),
-    // },
+    {
+      name: 'Affiliates',
+      href: '/affiliates',
+      icon: (
+          <GroupIcon/>
+      ),
+    },
     {
       name: 'Tags',
       href: '/tags',

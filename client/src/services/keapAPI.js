@@ -75,7 +75,8 @@ class KeapAPI {
     //AFFILIATE ENDPOINTS 
     async getAffiliates(queryParams) {
         try {
-            const response = await api.get('/affiliates')
+            queryParams = cleanParams(queryParams)
+            const response = await api.get('/affiliates', {params: queryParams})
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
@@ -83,6 +84,17 @@ class KeapAPI {
         }
     }
 
+    async createAffiliate(affiliateData){
+        try {
+
+            console.log(affiliateData)
+            const response = await api.post('affiliates',affiliateData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };            
+        }
+    }
     //Contact endpoints-------------------------------------------------------------------------------------------  
 
     async getContacts(queryParams) {

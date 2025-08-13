@@ -76,7 +76,7 @@ class KeapAPI {
     async getAffiliates(queryParams) {
         try {
             queryParams = cleanParams(queryParams)
-            const response = await api.get('/affiliates', {params: queryParams})
+            const response = await api.get('/affiliates', { params: queryParams })
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
@@ -84,15 +84,15 @@ class KeapAPI {
         }
     }
 
-    async createAffiliate(affiliateData){
+    async createAffiliate(affiliateData) {
         try {
 
             console.log(affiliateData)
-            const response = await api.post('affiliates',affiliateData)
+            const response = await api.post('affiliates', affiliateData)
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
-            return { success: false, error: errorInfo };            
+            return { success: false, error: errorInfo };
         }
     }
     //Contact endpoints-------------------------------------------------------------------------------------------  
@@ -190,6 +190,7 @@ class KeapAPI {
 
     async getContactsPaginated(url) {
         try {
+            console.log('url', url)
             const response = await api.get(url)
             return response.data
         } catch (error) {
@@ -1133,8 +1134,8 @@ class KeapAPI {
 
     async getSubscriptions(queryParams) {
         try {
-            console.log(`dsdss`,queryParams)
-            const response = await api.get(`subscriptions`, { params:  queryParams  })
+            console.log(`dsdss`, queryParams)
+            const response = await api.get(`subscriptions`, { params: queryParams })
             return response.data
         } catch (error) {
             const errorInfo = handleError(error);
@@ -1163,7 +1164,91 @@ class KeapAPI {
         }
     }
 
+    async getOpportunities(queryParams) {
+        try {
+            const response = await api.get(`opportunities`, { params: queryParams })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
 
+    async getCampaigns(queryParams) {
+        try {
+            const response = await api.get(`campaigns`, { params: queryParams })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+
+    }
+    async getCampaignsPaginated(url) {
+        try {
+            const response = await api.get(url)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+
+    }
+    async getCampaignById(campaignId) {
+        try {
+            const response = await api.get(`campaigns/${campaignId}`, {
+                params: {
+                    optional_properties: 'goals,sequences'
+                }
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async addContactsToCampaignSequence(campaignId, sequenceId, contactIds) {
+        try {
+            const response = await api.post(`campaigns/${campaignId}/sequences/${sequenceId}/contacts`, contactIds)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async deleteContactsFromCampaignSequence(campaignId, sequenceId, contactIds) {
+        try {
+            const response = await api.delete(`campaigns/${campaignId}/sequences/${sequenceId}/contacts`, {
+                data: contactIds
+            })
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+        async addContactFromCampaignSequence(campaignId, sequenceId, contactId) {
+        try {
+            const response = await api.post(`campaigns/${campaignId}/sequences/${sequenceId}/contacts/${contactId}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+    async deleteContactFromCampaignSequence(campaignId, sequenceId, contactId) {
+        try {
+            const response = await api.delete(`campaigns/${campaignId}/sequences/${sequenceId}/contacts/${contactId}`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
 }
 
 

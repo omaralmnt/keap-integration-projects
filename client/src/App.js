@@ -29,6 +29,9 @@ import { Orders } from './components/orders/Orders';
 import { CreateOrder } from './components/orders/CreateOrder';
 import { OrderDetails } from './components/orders/OrderDetails';
 import { Subscriptions } from './components/subscriptions/Subscriptions';
+import { Opportunities } from './components/opportunities/Opportunities';
+import { Campaigns } from './components/campaigns/Campaigns';
+import { CampaignDetails } from './components/campaigns/CampaignDetails';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -180,6 +183,25 @@ function App() {
         <Route path='/subscriptions' element={
           <ProtectedRoute>
             <Subscriptions />
+          </ProtectedRoute>
+        } />
+
+        {/* Opportunities endpoints ----------*/}
+
+        <Route path='/opportunities' element={
+          <ProtectedRoute>
+            <Opportunities />
+          </ProtectedRoute>
+        } />
+
+        <Route path='/campaigns' element={
+          <ProtectedRoute>
+            <Campaigns />
+          </ProtectedRoute>
+        } />
+        <Route path='/campaigns/details/:campaignId' element={
+          <ProtectedRoute>
+            <CampaignDetails />
           </ProtectedRoute>
         } />
       </Routes>

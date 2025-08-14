@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '../ui/Button';
 import keapAPI from '../../services/keapAPI';
+import WebhookLogs from './WebHookLogs'; // El nuevo componente que crearemos
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -19,6 +20,30 @@ const Modal = ({ isOpen, onClose, title, children }) => {
           </button>
         </div>
         {children}
+      </div>
+    </div>
+  );
+};
+
+// Large Modal Component for Logs
+const LargeModal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl"
+          >
+            ×
+          </button>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -146,6 +171,7 @@ export function Hooks() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showLogsModal, setShowLogsModal] = useState(false);
   const [selectedHook, setSelectedHook] = useState(null);
   
   // Form states
@@ -321,11 +347,18 @@ export function Hooks() {
     setShowVerifyModal(true);
   };
 
+  // Open logs modal
+  const openLogsModal = (hook) => {
+    setSelectedHook(hook);
+    setShowLogsModal(true);
+  };
+
   // Close modals and reset form
   const closeModals = () => {
     setShowCreateModal(false);
     setShowUpdateModal(false);
     setShowVerifyModal(false);
+    setShowLogsModal(false);
     setSelectedHook(null);
     setFormData({ eventKey: '', hookUrl: '' });
     setVerifySecret('');
@@ -356,6 +389,12 @@ export function Hooks() {
             onClick={() => setShowCreateModal(true)}
           >
             Create Hook
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowLogsModal(true)}
+          >
+            View Logs
           </Button>
           <Button onClick={handleLoadHooks} disabled={loading}>
             {loading ? 'Loading...' : 'Load Hooks'}
@@ -419,7 +458,7 @@ export function Hooks() {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-sm text-gray-900">
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 flex-wrap gap-1">
                         {hook.status === 'Unverified' && (
                           <>
                             <Button 
@@ -443,8 +482,14 @@ export function Hooks() {
                         <Button 
                           variant="outline"
                           size="sm"
+                          onClick={() => openLogsModal(hook)}
+                        >
+                           Logs
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          size="sm"
                           onClick={() => openUpdateModal(hook)}
-                          className="text-blue-600 hover:text-blue-800"
                         >
                           Edit
                         </Button>
@@ -686,6 +731,18 @@ export function Hooks() {
           </div>
         </form>
       </Modal>
+
+      {/* Webhook Logs Modal */}
+      <LargeModal
+        isOpen={showLogsModal}
+        onClose={closeModals}
+        title='Resthooks Logs'
+      >
+        <WebhookLogs 
+          selectedHook={selectedHook} 
+          onClose={closeModals}
+        />
+      </LargeModal>
     </div>
   );
 }

@@ -33,10 +33,17 @@ functions.http('keapHook', async (req, res) => {
   try {
     console.log("Processing webhook data:", req.body);
     
-    const { event_key, object_type, object_keys } = req.body;
+    const { event_key, object_type, object_keys, verification_key } = req.body;
 
+    // Si es webhook de verificación (solo tiene verification_key)
+    if (verification_key && !object_keys) {
+      console.log(`Verification webhook received: ${event_key} with key: ${verification_key}`);
+      return res.status(200).send("OK - verification webhook");
+    }
+
+    // Si es webhook real (debe tener object_keys)
     if (!event_key || !object_type || !object_keys || !Array.isArray(object_keys)) {
-      console.error("Invalid webhook data:", req.body);
+      console.error("Invalid webhook data - missing required fields:", req.body);
       return res.status(400).send("Incomplete webhook data");
     }
 
@@ -51,7 +58,7 @@ functions.http('keapHook', async (req, res) => {
       }
 
       const query = `
-        INSERT INTO public.webhook_eventos 
+        INSERT INTO public.webhook_events 
         (event_key, object_type, api_url, object_id, timestamp, created_at)
         VALUES ($1, $2, $3, $4, $5, NOW())
       `;

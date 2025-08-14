@@ -1249,6 +1249,16 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
+
+        async getHooks() {
+        try {
+            const response = await api.get(`hooks`)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
 }
 
 

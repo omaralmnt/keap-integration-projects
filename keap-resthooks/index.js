@@ -1,4 +1,4 @@
-exports.keapHook = (req, res) => {
+explorts.keapHook = (req, res) => {
   console.log("Webhook recibido:", req.body);
 
   const hookSecret = req.header("X-Hook-Secret");

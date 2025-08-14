@@ -32,6 +32,7 @@ import { Subscriptions } from './components/subscriptions/Subscriptions';
 import { Opportunities } from './components/opportunities/Opportunities';
 import { Campaigns } from './components/campaigns/Campaigns';
 import { CampaignDetails } from './components/campaigns/CampaignDetails';
+import { Hooks } from './components/resthooks/Hooks';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -204,7 +205,13 @@ function App() {
             <CampaignDetails />
           </ProtectedRoute>
         } />
+        <Route path='/hooks' element={
+          <ProtectedRoute>
+            <Hooks />
+          </ProtectedRoute>
+        } />
       </Routes>
+      
       <ToastContainer />
 
     </>

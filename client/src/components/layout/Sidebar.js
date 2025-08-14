@@ -3,7 +3,8 @@ import {
   LocateFixed, Mail, Notebook, Package, RefreshCcw, 
   Settings, SquareStack, Store, Tag, User, 
   Wallet, ChevronDown, ChevronRight, Home, TrendingUp, 
-  CreditCard, FileText, Share2
+  CreditCard, FileText, Share2,
+  Webhook
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -133,6 +134,11 @@ export function Sidebar() {
           name: 'Files',
           href: '/files',
           icon: <FolderArchive className="w-4 h-4" />
+        },
+        {
+          name: 'RestHooks',
+          href: '/hooks',
+          icon: <Webhook className="w-4 h-4" />
         },
         {
           name: 'Settings',

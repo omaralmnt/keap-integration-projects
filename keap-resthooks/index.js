@@ -1,10 +1,5 @@
-const express = require('express');
+const functions = require('@google-cloud/functions-framework');
 const { Pool } = require('pg');
-
-const app = express();
-
-// Middleware para parsear JSON
-app.use(express.json());
 
 // Pool de conexiones lazy loading
 let pool;
@@ -15,26 +10,17 @@ function getPool() {
       user: process.env.PGUSER,
       password: process.env.PGPASSWORD,
       database: process.env.PGDATABASE,
-      host: process.env.PGHOST, // Ya tienes la ruta correcta en las env vars
-      max: 5,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      host: process.env.PGHOST,
+      max: 1, // Solo 1 conexión para Functions
+      idleTimeoutMillis: 0,
+      connectionTimeoutMillis: 60000,
     });
   }
   return pool;
 }
 
-// Health check endpoint (OBLIGATORIO para Cloud Run)
-app.get('/', (req, res) => {
-  res.status(200).send('Keap Webhook Service is running');
-});
-
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
-
-// Tu función keapHook convertida a endpoint
-app.post('/webhook', async (req, res) => {
+// Registrar la función keapHook
+functions.http('keapHook', async (req, res) => {
   console.log("Webhook received:", req.body);
 
   const hookSecret = req.header("X-Hook-Secret");
@@ -45,6 +31,8 @@ app.post('/webhook', async (req, res) => {
   }
 
   try {
+    console.log("Processing webhook data:", req.body);
+    
     const { event_key, object_type, object_keys } = req.body;
 
     if (!event_key || !object_type || !object_keys || !Array.isArray(object_keys)) {
@@ -86,38 +74,4 @@ app.post('/webhook', async (req, res) => {
     console.error("Error processing webhook:", error);
     res.status(500).send("Internal server error");
   }
-});
-
-// Compatibilidad: también acepta POST en la raíz para mantener URLs existentes
-app.post('/', async (req, res) => {
-  // Redirigir al endpoint principal
-  return app._router.handle(Object.assign(req, { url: '/webhook', originalUrl: '/webhook' }), res);
-});
-
-// Puerto requerido por Cloud Run
-const port = process.env.PORT || 8080;
-
-const server = app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on port ${port}`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    if (pool) {
-      pool.end();
-    }
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    if (pool) {
-      pool.end();
-    }
-    process.exit(0);
-  });
 });

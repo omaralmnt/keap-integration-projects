@@ -1231,7 +1231,7 @@ class KeapAPI {
         }
     }
 
-        async addContactFromCampaignSequence(campaignId, sequenceId, contactId) {
+    async addContactFromCampaignSequence(campaignId, sequenceId, contactId) {
         try {
             const response = await api.post(`campaigns/${campaignId}/sequences/${sequenceId}/contacts/${contactId}`)
             return response.data
@@ -1250,10 +1250,65 @@ class KeapAPI {
         }
     }
 
-        async getHooks() {
+    async getHooks() {
         try {
             const response = await api.get(`hooks`)
             return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async createHook(hookData) {
+        try {
+            const response = await api.post(`hooks`, hookData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async updateHook(hookKey, hookData) {
+        try {
+            const response = await api.put(`hooks/${hookKey}`, hookData)
+            return response.data
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+    async deleteHook(hookKey) {
+        try {
+            const response = await api.delete(`hooks/${hookKey}`)
+            return response
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async verifyHook(hookKey) {
+        try {
+            const response = await api.post(`hooks/${hookKey}/verify`)
+            return response
+        } catch (error) {
+            const errorInfo = handleError(error);
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async verifyHookDelayed(hookKey, secret) {
+        try {
+            const response = await api.post(`hooks/${hookKey}/delayedVerify`, {},
+                {
+                    headers: {
+                        'X-Hook-Secret': secret
+                    }
+                }
+            )
+            return response
         } catch (error) {
             const errorInfo = handleError(error);
             return { success: false, error: errorInfo };

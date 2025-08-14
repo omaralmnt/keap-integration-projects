@@ -47,6 +47,95 @@ const Input = ({
   );
 };
 
+// Available event types from Keap API
+const EVENT_TYPES = [
+  "appointment.add",
+  "appointment.delete", 
+  "appointment.edit",
+  "company.add",
+  "company.delete",
+  "company.edit",
+  "contact.add",
+  "contact.delete",
+  "contact.edit",
+  "contactGroup.add",
+  "contactGroup.applied",
+  "contactGroup.delete",
+  "contactGroup.edit",
+  "contactGroup.removed",
+  "invoice.add",
+  "invoice.delete",
+  "invoice.edit",
+  "invoice.payment.add",
+  "invoice.payment.delete",
+  "invoice.payment.edit",
+  "leadsource.add",
+  "leadsource.delete",
+  "leadsource.edit",
+  "note.add",
+  "note.delete",
+  "note.edit",
+  "opportunity.add",
+  "opportunity.delete",
+  "opportunity.edit",
+  "opportunity.stage_move",
+  "order.add",
+  "order.delete",
+  "order.edit",
+  "product.add",
+  "product.delete",
+  "product.edit",
+  "subscription.add",
+  "subscription.delete",
+  "subscription.edit",
+  "task.add",
+  "task.complete",
+  "task.delete",
+  "task.edit",
+  "task.incomplete",
+  "user.activate",
+  "user.add",
+  "user.edit"
+];
+
+// Group event types by category for better UX
+const EVENT_CATEGORIES = {
+  'Appointments': EVENT_TYPES.filter(e => e.startsWith('appointment.')),
+  'Companies': EVENT_TYPES.filter(e => e.startsWith('company.')),
+  'Contacts': EVENT_TYPES.filter(e => e.startsWith('contact')),
+  'Invoices': EVENT_TYPES.filter(e => e.startsWith('invoice.')),
+  'Lead Sources': EVENT_TYPES.filter(e => e.startsWith('leadsource.')),
+  'Notes': EVENT_TYPES.filter(e => e.startsWith('note.')),
+  'Opportunities': EVENT_TYPES.filter(e => e.startsWith('opportunity.')),
+  'Orders': EVENT_TYPES.filter(e => e.startsWith('order.')),
+  'Products': EVENT_TYPES.filter(e => e.startsWith('product.')),
+  'Subscriptions': EVENT_TYPES.filter(e => e.startsWith('subscription.')),
+  'Tasks': EVENT_TYPES.filter(e => e.startsWith('task.')),
+  'Users': EVENT_TYPES.filter(e => e.startsWith('user.'))
+};
+
+// Select component for event types
+const EventTypeSelect = ({ value, onChange, className = '' }) => {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${className}`}
+    >
+      <option value="">Select an event type...</option>
+      {Object.entries(EVENT_CATEGORIES).map(([category, events]) => (
+        <optgroup key={category} label={category}>
+          {events.map(eventType => (
+            <option key={eventType} value={eventType}>
+              {eventType}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+};
+
 // Main Hooks Component
 export function Hooks() {
   const [hooks, setHooks] = useState([]);
@@ -419,14 +508,12 @@ export function Hooks() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Event Key *
             </label>
-            <Input
-              placeholder="e.g., contact.add"
+            <EventTypeSelect
               value={formData.eventKey}
               onChange={(e) => setFormData({...formData, eventKey: e.target.value})}
-              required
             />
             <p className="mt-1 text-xs text-gray-500">
-              The event you want to subscribe to
+              Select the event you want to subscribe to
             </p>
           </div>
           
@@ -491,11 +578,9 @@ export function Hooks() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Event Key *
             </label>
-            <Input
-              placeholder="e.g., contact.add"
+            <EventTypeSelect
               value={formData.eventKey}
               onChange={(e) => setFormData({...formData, eventKey: e.target.value})}
-              required
             />
           </div>
           

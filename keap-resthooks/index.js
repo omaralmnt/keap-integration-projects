@@ -1,12 +1,22 @@
 const { Pool } = require('pg');
 
-const pool = new Pool({
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  database: process.env.PGDATABASE,
-  host: process.env.PGHOST,
+// No crear el pool inmediatamente
+let pool;
 
-});
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      user: process.env.PGUSER,
+      password: process.env.PGPASSWORD,
+      database: process.env.PGDATABASE,
+      host: `/cloudsql/${process.env.CLOUD_SQL_CONNECTION_NAME}`,
+      max: 1, // Solo 1 conexión para Cloud Functions
+      idleTimeoutMillis: 0, // No timeout en Cloud Functions
+      connectionTimeoutMillis: 60000,
+    });
+  }
+  return pool;
+}
 
 exports.keapHook = async (req, res) => {
   console.log("Webhook received:", req.body);
@@ -19,14 +29,15 @@ exports.keapHook = async (req, res) => {
   }
 
   try {
-    // console.log("Datos del webhook:", req.body);
-    
     const { event_key, object_type, object_keys } = req.body;
 
     if (!event_key || !object_type || !object_keys || !Array.isArray(object_keys)) {
-      console.error("invalid webhook data:", req.body);
+      console.error("Invalid webhook data:", req.body);
       return res.status(400).send("Incomplete webhook data");
     }
+
+    // Obtener el pool solo cuando se necesite
+    const dbPool = getPool();
 
     for (const objectData of object_keys) {
       const { apiUrl, id, timestamp } = objectData;
@@ -50,22 +61,14 @@ exports.keapHook = async (req, res) => {
         timestamp
       ];
 
-      await pool.query(query, values);
+      await dbPool.query(query, values);
       console.log(`Event inserted: ${event_key} - ${object_type} - ID: ${id}`);
     }
 
     res.status(200).send("OK");
 
   } catch (error) {
-    console.error("Error processing rest hook:", error);
+    console.error("Error processing webhook:", error);
     res.status(500).send("Internal server error");
   }
 };
-
-process.on('SIGTERM', () => {
-  pool.end();
-});
-
-process.on('SIGINT', () => {
-  pool.end();
-});

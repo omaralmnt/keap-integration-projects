@@ -36,42 +36,31 @@ export function Contacts() {
   const [givenName, setGivenName] = useState('');
   const [familyName, setFamilyName] = useState('');
   const [limit, setLimit] = useState(3);
-  const [offset, setOffset] = useState(0);
   const [order, setOrder] = useState('DateCreated');
   const [orderDirection, setOrderDirection] = useState('TRUE');
   const [since, setSince] = useState('');
   const [until, setUntil] = useState('');
-  const [previous,setPrevious] = useState('')
-  const [next,setNext] = useState('')
+  const [page,setPage] = useState(0)
 
   // Search function - TÚ IMPLEMENTARÁS LA LÓGICA DE API
 
   const handlePagination = async (action) => {
-    // console.log('hi')
-    // let response;
-    // if (action === 'next') {
-    //    response = await keapAPI.getContactsPaginated(next)
-    //    setOffset(Number(offset) + Number(limit))
-  
-    // }else{
-    //    response = await keapAPI.getContactsPaginated(previous)
-    //    const addedOffset = Number(offset) - Number(limit)
-    //    if (addedOffset > -1 ) {
-    //            setOffset(addedOffset)
+    // let newPage
+    if (action === 'next') {
+      setPage(page +1)
+      // newPage = page + 1
+    }else{
+       setPage(page -1)
+     
 
-    //    }
-
-    // }
-    // setContacts(response.contacts)
-    // setNext(response.next)
-    // setPrevious(response.previous)
+    }
+  handleSearch()
         
   }
   const handleSearch = async () => {
     try {
             setLoading(true);
 
-    const formattedSince = formatDateForApi(since)
     // const formattedUntil = formatDateForApi(until)
     // console.log('s',formattedSince)
     const queryParams = {
@@ -79,17 +68,22 @@ export function Contacts() {
       Email: email,
       FirstName: givenName,
       LastName: familyName,
-      LastUpdated: `~>=~ ${formattedSince}`
 
       },
       limit,
-      page:offset,
+      page:page,
       OrderBy:order,
       asc:orderDirection.toUpperCase() === "TRUE"
       
 
 
     };
+    if(since){
+    const formattedSince = formatDateForApi(since)
+
+      queryParams.query.LastUpdated = `~>=~ ${formattedSince}`
+
+    }
     // console.log(queryParams)
 
     const data = await keapAPI.getContacts(queryParams)
@@ -171,11 +165,11 @@ function formatDateForApi(fecha) {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Offset</label>
+            <label className="block text-xs text-gray-500 mb-1">Page</label>
             <Input
               type="number"
-              value={offset}
-              onChange={(e) => setOffset(parseInt(e.target.value) || 0)}
+              value={page}
+              onChange={(e) => setPage(parseInt(e.target.value) || 0)}
               min="0"
             />
           </div>
@@ -310,7 +304,7 @@ function formatDateForApi(fecha) {
               <Button 
                 variant="outline" 
                 size="sm"
-                disabled={offset === 0}
+                disabled={page === 0}
                 className="inline-flex items-center px-4 py-2 text-sm font-medium"
                 onClick={() => handlePagination('previous')}
 

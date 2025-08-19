@@ -61,85 +61,96 @@ export function CreateOrUpdateContact() {
       const payload = {};
 
       // Basic info
-      if (formData.givenName) payload.given_name = formData.givenName;
-      if (formData.familyName) payload.family_name = formData.familyName;
-      if (formData.middleName) payload.middle_name = formData.middleName;
-      if (formData.preferredName) payload.preferred_name = formData.preferredName;
-      if (formData.prefix) payload.prefix = formData.prefix;
-      if (formData.suffix) payload.suffix = formData.suffix;
-      if (formData.jobTitle) payload.job_title = formData.jobTitle;
-      if (formData.contactType) payload.contact_type = formData.contactType;
-      if (formData.spouseName) payload.spouse_name = formData.spouseName;
-      if (formData.birthday) payload.birthday = new Date(formData.birthday).toISOString();
-      if (formData.anniversary) payload.anniversary = formData.anniversary;
-      if (formData.website) payload.website = formData.website;
+      if (formData.givenName) payload.FirstName = formData.givenName;
+      if (formData.familyName) payload.LastName = formData.familyName;
+      if (formData.middleName) payload.MiddleName = formData.middleName;
+      // if (formData.preferredName) payload.preferred_name = formData.preferredName;
+      // if (formData.prefix) payload.prefix = formData.prefix;
+      if (formData.suffix) payload.Suffix = formData.suffix;
+      if (formData.jobTitle) payload.JobTitle = formData.jobTitle;
+      if (formData.contactType) payload.ContactType = formData.contactType;
+      if (formData.spouseName) payload.SpouseName = formData.spouseName;
+      if (formData.birthday) payload.Birthday = new Date(formData.birthday).toISOString();
+      if (formData.anniversary) payload.Anniversary = formData.anniversary;
+      if (formData.website) payload.Website = formData.website;
 
-      // Email addresses
-      const emailAddresses = [];
-      if (formData.email1) emailAddresses.push({ email: formData.email1, field: 'EMAIL1' });
-      if (formData.email2) emailAddresses.push({ email: formData.email2, field: 'EMAIL2' });
-      if (formData.email3) emailAddresses.push({ email: formData.email3, field: 'EMAIL3' });
-      if (emailAddresses.length > 0) payload.email_addresses = emailAddresses;
+      if (formData.email1) payload.Email = formData.email1;
+      if (formData.email2) payload.EmailAddress2 = formData.email2;
+      if (formData.email3) payload.EmailAddress3 = formData.email3;
 
-      // Phone numbers
-      const phoneNumbers = [];
-      if (formData.phone1) phoneNumbers.push({ number: formData.phone1, field: 'PHONE1', type: formData.phone1Type || undefined, extension: formData.phone1Ext || undefined });
-      if (formData.phone2) phoneNumbers.push({ number: formData.phone2, field: 'PHONE2', type: formData.phone2Type || undefined, extension: formData.phone2Ext || undefined });
-      if (formData.phone3) phoneNumbers.push({ number: formData.phone3, field: 'PHONE3', type: formData.phone3Type || undefined, extension: formData.phone3Ext || undefined });
-      if (formData.phone4) phoneNumbers.push({ number: formData.phone4, field: 'PHONE4', type: formData.phone4Type || undefined, extension: formData.phone4Ext || undefined });
-      if (formData.phone5) phoneNumbers.push({ number: formData.phone5, field: 'PHONE5', type: formData.phone5Type || undefined, extension: formData.phone5Ext || undefined });
-      if (phoneNumbers.length > 0) payload.phone_numbers = phoneNumbers;
+      if (formData.phone1) payload.Phone1 = formData.phone1;
+      if (formData.phone1Type) payload.Phone1Type = formData.phone1Type;
+      if (formData.phone1Ext) payload.Phone1Ext = formData.phone1Ext;
 
-      // Fax numbers
-      const faxNumbers = [];
-      if (formData.fax1) faxNumbers.push({ number: formData.fax1, field: 'FAX1', type: formData.fax1Type || undefined });
-      if (formData.fax2) faxNumbers.push({ number: formData.fax2, field: 'FAX2', type: formData.fax2Type || undefined });
-      if (faxNumbers.length > 0) payload.fax_numbers = faxNumbers;
+      if (formData.phone2) payload.Phone2 = formData.phone2;
+      if (formData.phone2Type) payload.Phone2Type = formData.phone2Type;
+      if (formData.phone2Ext) payload.Phone2Ext = formData.phone2Ext;      
+  
+      if (formData.phone3) payload.Phone3 = formData.phone3;
+      if (formData.phone3Type) payload.Phone3Type = formData.phone3Type;
+      if (formData.phone3Ext) payload.Phone3Ext = formData.phone3Ext;     
 
-      // Addresses
-      const addresses = [];
-      if (formData.billingLine1) addresses.push({
-        field: 'BILLING', line1: formData.billingLine1, line2: formData.billingLine2 || undefined,
-        locality: formData.billingCity || undefined, region: formData.billingRegion || undefined,
-        postal_code: formData.billingPostal || undefined, zip_code: formData.billingZip || undefined,
-        zip_four: formData.billingZipFour || undefined, country_code: formData.billingCountry
-      });
-      if (formData.shippingLine1) addresses.push({
-        field: 'SHIPPING', line1: formData.shippingLine1, line2: formData.shippingLine2 || undefined,
-        locality: formData.shippingCity || undefined, region: formData.shippingRegion || undefined,
-        postal_code: formData.shippingPostal || undefined, zip_code: formData.shippingZip || undefined,
-        zip_four: formData.shippingZipFour || undefined, country_code: formData.shippingCountry
-      });
-      if (formData.otherLine1) addresses.push({
-        field: 'OTHER', line1: formData.otherLine1, line2: formData.otherLine2 || undefined,
-        locality: formData.otherCity || undefined, region: formData.otherRegion || undefined,
-        postal_code: formData.otherPostal || undefined, zip_code: formData.otherZip || undefined,
-        zip_four: formData.otherZipFour || undefined, country_code: formData.otherCountry
-      });
-      if (addresses.length > 0) payload.addresses = addresses;
+      if (formData.phone4) payload.Phone4 = formData.phone4;
+      if (formData.phone4Type) payload.Phone4Type = formData.phone4Type;
+      if (formData.phone4Ext) payload.Phone4Ext = formData.phone4Ext;     
+    
+      if (formData.phone5) payload.Phone5 = formData.phone5;
+      if (formData.phone5Type) payload.Phone5Type = formData.phone5Type;
+      if (formData.phone5Ext) payload.Phone5Ext = formData.phone5Ext;     
 
-      // Social accounts
-      const socialAccounts = [];
-      if (formData.socialName1) socialAccounts.push({ name: formData.socialName1, type: formData.socialType1 });
-      if (formData.socialName2) socialAccounts.push({ name: formData.socialName2, type: formData.socialType2 });
-      if (socialAccounts.length > 0) payload.social_accounts = socialAccounts;
+      // // Fax numbers
+    
+      if (formData.fax1) payload.Fax1 = formData.fax1;
+      if (formData.fax1Type) payload.fax1Type = formData.fax1Type;
+  
+      if (formData.fax2) payload.Fax2 = formData.fax2;
+      if (formData.fax2Type) payload.fax2Type = formData.fax2Type;
 
-      // Custom fields
-      const customFields = [];
-      if (formData.customField1Id) customFields.push({ id: parseInt(formData.customField1Id), content: formData.customField1Content });
-      if (formData.customField2Id) customFields.push({ id: parseInt(formData.customField2Id), content: formData.customField2Content });
-      if (customFields.length > 0) payload.custom_fields = customFields;
 
-      // Settings
-      if (formData.companyId) payload.company = { id: parseInt(formData.companyId) };
-      if (formData.leadSourceId) payload.lead_source_id = parseInt(formData.leadSourceId);
-      if (formData.ownerId) payload.owner_id = parseInt(formData.ownerId);
-      if (formData.optInReason) payload.opt_in_reason = formData.optInReason;
-      if (formData.preferredLocale) payload.preferred_locale = formData.preferredLocale;
-      if (formData.timeZone) payload.time_zone = formData.timeZone;
-      if (formData.sourceType) payload.source_type = formData.sourceType;
-      if (formData.duplicateOption) payload.duplicate_option = formData.duplicateOption;
-      if (formData.ipAddress) payload.origin = { ip_address: formData.ipAddress };
+if (formData.billingLine1) payload.StreetAddress1 = formData.billingLine1;
+if (formData.billingLine2) payload.StreetAddress2 = formData.billingLine2;
+if (formData.billingCity) payload.City = formData.billingCity;
+if (formData.billingRegion) payload.State = formData.billingRegion;
+if (formData.billingPostal) payload.PostalCode = formData.billingPostal;
+if (formData.billingZipFour) payload.ZipFour1 = formData.billingZipFour;
+if (formData.billingCountry) payload.Country = formData.billingCountry;
+if (formData.billingType) payload.Address1Type = formData.billingType;
+// Address 2 (Secondary)
+if (formData.shippingLine1) payload.Address2Street1 = formData.shippingLine1;
+if (formData.shippingLine2) payload.Address2Street2 = formData.shippingLine2;
+if (formData.shippingCity) payload.City2 = formData.shippingCity;
+if (formData.shippingRegion) payload.State2 = formData.shippingRegion;
+if (formData.shippingPostal) payload.PostalCode2 = formData.shippingPostal;
+if (formData.shippingZipFour) payload.ZipFour2 = formData.shippingZipFour;
+if (formData.shippingCountry) payload.Country2 = formData.shippingCountry;
+if (formData.shippingType) payload.Address2Type = formData.shippingType;
+
+// Address 3 (Tertiary)
+if (formData.otherLine1) payload.Address3Street1 = formData.otherLine1;
+if (formData.otherLine2) payload.Address3Street2 = formData.otherLine2;
+if (formData.otherCity) payload.City3 = formData.otherCity;
+if (formData.otherRegion) payload.State3 = formData.otherRegion;
+if (formData.otherPostal) payload.PostalCode3 = formData.otherPostal;
+if (formData.otherZipFour) payload.ZipFour3 = formData.otherZipFour;
+if (formData.otherCountry) payload.Country3 = formData.otherCountry;
+if (formData.otherType) payload.Address3Type = formData.otherType;
+
+      // // Custom fields
+      // const customFields = [];
+      // if (formData.customField1Id) customFields.push({ id: parseInt(formData.customField1Id), content: formData.customField1Content });
+      // if (formData.customField2Id) customFields.push({ id: parseInt(formData.customField2Id), content: formData.customField2Content });
+      // if (customFields.length > 0) payload.custom_fields = customFields;
+
+      // // Settings
+      if (formData.companyId) payload.CompanyID = formData.companyId;
+      // if (formData.leadSourceId) payload.lead_source_id = parseInt(formData.leadSourceId);
+      // if (formData.ownerId) payload.owner_id = parseInt(formData.ownerId);
+      // if (formData.optInReason) payload.opt_in_reason = formData.optInReason;
+      // if (formData.preferredLocale) payload.preferred_locale = formData.preferredLocale;
+      // if (formData.timeZone) payload.time_zone = formData.timeZone;
+      // if (formData.sourceType) payload.source_type = formData.sourceType;
+      // if (formData.duplicateOption) payload.duplicate_option = formData.duplicateOption;
+      // if (formData.ipAddress) payload.origin = { ip_address: formData.ipAddress };
 
       console.log('Payload:', payload);
 
@@ -296,10 +307,9 @@ export function CreateOrUpdateContact() {
               <input placeholder="ZIP" value={formData[`${type}Zip`]} onChange={(e) => updateFormData(`${type}Zip`, e.target.value)} className={inputClass} />
               <input placeholder="ZIP+4" value={formData[`${type}ZipFour`]} onChange={(e) => updateFormData(`${type}ZipFour`, e.target.value)} className={inputClass} />
               <select value={formData[`${type}Country`]} onChange={(e) => updateFormData(`${type}Country`, e.target.value)} className={selectClass}>
-                <option value="US">US</option>
-                <option value="CA">CA</option>
-                <option value="MX">MX</option>
-                <option value="GB">GB</option>
+                <option value="USA">USA</option>
+                <option value="MEX">MEX</option>
+                <option value="DOM">DOM</option>
               </select>
             </div>
           </div>
@@ -307,7 +317,7 @@ export function CreateOrUpdateContact() {
       </div>
 
       {/* Social & Custom */}
-      <div className={sectionClass}>
+      {/* <div className={sectionClass}>
         <h2 className="font-medium mb-2">Social & Custom</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
           <input placeholder="Social Name 1" value={formData.socialName1} onChange={(e) => updateFormData('socialName1', e.target.value)} className={inputClass} />
@@ -333,13 +343,13 @@ export function CreateOrUpdateContact() {
           <input type="number" placeholder="Custom Field 2 ID" value={formData.customField2Id} onChange={(e) => updateFormData('customField2Id', e.target.value)} className={inputClass} />
           <input placeholder="Custom Field 2 Content" value={formData.customField2Content} onChange={(e) => updateFormData('customField2Content', e.target.value)} className={inputClass} />
         </div>
-      </div>
+      </div> */}
 
       {/* Settings */}
       <div className={sectionClass}>
         <h2 className="font-medium mb-2">Settings</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <input type="number" placeholder="Company ID" value={formData.companyId} onChange={(e) => updateFormData('companyId', e.target.value)} className={inputClass} />
+          <input type="text" placeholder="Company ID" value={formData.companyId} onChange={(e) => updateFormData('companyId', e.target.value)} className={inputClass} />
           <input type="number" placeholder="Lead Source ID" value={formData.leadSourceId} onChange={(e) => updateFormData('leadSourceId', e.target.value)} className={inputClass} />
           <input type="number" placeholder="Owner ID" value={formData.ownerId} onChange={(e) => updateFormData('ownerId', e.target.value)} className={inputClass} />
           <input placeholder="Opt-in Reason" value={formData.optInReason} onChange={(e) => updateFormData('optInReason', e.target.value)} className={inputClass} />

@@ -90,10 +90,7 @@ const handleRestRequest = async (req, res) => {
 
 // Handler para peticiones XML-RPC CORREGIDO
 const handleXmlRpcRequest = async (req, res) => {
-  console.log('🔧 XML-RPC Body type:', typeof req.body);
-  console.log('🔧 XML-RPC Body length:', req.body?.length);
-  console.log('🔧 XML-RPC Body preview:', req.body?.substring(0, 200));
-  
+
   // Preparar headers para XML-RPC
   const headers = {
     'Content-Type': 'text/xml',
@@ -107,7 +104,7 @@ const handleXmlRpcRequest = async (req, res) => {
     console.log('🔧 Authorization header:', req.headers.authorization?.substring(0, 20) + '...');
   }
   
-  console.log('🔧 Final headers:', headers);
+  // console.log('🔧 Final headers:', headers);
   
   // Configuración para axios (XML-RPC siempre es POST)
   const axiosConfig = {
@@ -118,7 +115,7 @@ const handleXmlRpcRequest = async (req, res) => {
     timeout: 30000,
   };
 
-  console.log('🔧 Sending to Keap URL:', KEAP_XMLRPC_URL);
+  // console.log('🔧 Sending to Keap URL:', KEAP_XMLRPC_URL);
   return await axios(axiosConfig);
 };
 

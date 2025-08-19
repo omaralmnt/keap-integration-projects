@@ -25,7 +25,7 @@ export function Header({ onLogout }) {
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
               <span className="text-white font-bold text-sm">K</span>
             </div>
-            <h1 className="text-xl font-semibold text-gray-900">Keap Integration (V1 REST API)</h1>
+            <h1 className="text-xl font-semibold text-gray-900">Keap Integration (XML-RPC)</h1>
           </div>
           
           {/* Info de conexión y logout */}

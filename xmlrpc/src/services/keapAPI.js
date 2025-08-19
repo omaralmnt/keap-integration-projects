@@ -1,5 +1,6 @@
 import { XmlRpcMessage, XmlRpcResponse } from 'xmlrpc-parser';
 import api from './httpClient'; // Tu cliente HTTP existente
+import { data } from 'react-router-dom';
 
 function cleanParams(params) {
     const result = {};
@@ -30,18 +31,38 @@ function cleanParams(params) {
 
     return result;
 }
-const handleError = (error) => {
+
+const handleError = (error, context = '') => {
+    let errorDetails = {
+        context,
+        message: 'Unknown error'
+    };
+
     if (error.response) {
-        console.log(error.response.status + ' - ' + error.response.data?.message);
+        errorDetails = {
+            ...errorDetails,
+            status: error.response.status,
+            message: error.response.data?.message || `HTTP ${error.response.status} Error`,
+            url: error.response.config?.url
+        };
+        console.error(`${context} - HTTP Error:`, errorDetails.message);
+    } else if (error.request) {
+        errorDetails = {
+            ...errorDetails,
+            message: 'No response received from server'
+        };
+        console.error(`${context} - Network Error:`, errorDetails.message);
     } else {
-        console.log(error);
+        errorDetails = {
+            ...errorDetails,
+            message: error.message || 'Unknown error'
+        };
+        console.error(`${context} - Error:`, errorDetails.message);
     }
 
-    return {
-        status: error.response?.status,
-        message: error.response?.data?.message || error.message || 'Unknown error'
-    };
+    return errorDetails;
 }
+
 function parseXmlRpcDate(dateString) {
   // "20250220T10:22:14" -> "2025-02-20T10:22:14"
   const year = dateString.substring(0, 4);
@@ -60,10 +81,12 @@ class KeapAPI {
 
     // Método genérico para llamadas XML-RPC usando xmlrpc-parser
     async xmlRpcCall(method, params = []) {
+        const context = `XML-RPC ${method}`;
+        
         try {
             // Obtener access token
             const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
-            const privateKey = tokens.access_token;
+            const privateKey = 'x';
 
             if (!privateKey) {
                 throw new Error('Access token requerido para XML-RPC');
@@ -71,14 +94,10 @@ class KeapAPI {
 
             // Agregar privateKey como primer parámetro
             const xmlRpcParams = [privateKey, ...params];
-            
-            // console.log('XML-RPC Call:', method, 'Params:', params);
 
             // Crear el mensaje XML-RPC usando xmlrpc-parser
             const xmlRpcMessage = new XmlRpcMessage(method, xmlRpcParams);
             const xmlPayload = xmlRpcMessage.xml();
-
-            // console.log('XML Payload:', xmlPayload);
 
             // Enviar la petición usando tu cliente HTTP existente
             const response = await api.post(this.xmlrpcUrl, xmlPayload, {
@@ -87,17 +106,14 @@ class KeapAPI {
                 }
             });
 
-            // console.log('XML Response:', response.data);
-
-            // CORRECCIÓN: Parsear la respuesta de manera más robusta
+            // Parsear la respuesta
             let parsedResponse;
             
             try {
-                // Opción 1: Verificar si XmlRpcResponse necesita ser instanciado diferente
+                // Verificar si XmlRpcResponse necesita ser instanciado diferente
                 if (typeof XmlRpcResponse === 'function') {
                     parsedResponse = new XmlRpcResponse(response.data);
                 } else {
-                    // Algunas versiones pueden exportar directamente una función
                     parsedResponse = XmlRpcResponse(response.data);
                 }
                 
@@ -114,98 +130,163 @@ class KeapAPI {
                 }
                 
             } catch (parseError) {
-                console.warn('Error parsing with xmlrpc-parser, using fallback:', parseError);
                 return this.parseXmlRpcResponse(response.data);
             }
 
         } catch (error) {
-            console.error('XML-RPC Error:', error);
-            throw error;
+            const errorDetails = handleError(error, context);
+            
+            // Re-throw con más contexto específico
+            const enhancedError = new Error(`${context} failed: ${errorDetails.message}`);
+            enhancedError.originalError = error;
+            enhancedError.context = context;
+            
+            throw enhancedError;
         }
     }
 
     // Método fallback para parsear XML-RPC manualmente
     parseXmlRpcResponse(xmlString) {
         try {
+            if (!xmlString || typeof xmlString !== 'string') {
+                throw new Error('Empty or invalid XML response received');
+            }
+
             // Crear un parser DOM
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
             
+            // Verificar errores de parsing
+            const parserError = xmlDoc.querySelector('parsererror');
+            if (parserError) {
+                throw new Error(`Invalid XML format: ${parserError.textContent.split('\n')[0]}`);
+            }
+            
             // Verificar si es un fault
-            const faultNode = xmlDoc.querySelector('fault');
+            const faultNode = xmlDoc.querySelector('methodResponse fault');
             if (faultNode) {
-                const faultCode = xmlDoc.querySelector('fault member[name="faultCode"] value')?.textContent;
-                const faultString = xmlDoc.querySelector('fault member[name="faultString"] value')?.textContent;
-                throw new Error(`XML-RPC Fault ${faultCode}: ${faultString}`);
+                const structMembers = faultNode.querySelectorAll('struct member');
+                let faultCode = 'Unknown';
+                let faultString = 'Unknown fault';
+                
+                structMembers.forEach(member => {
+                    const name = member.querySelector('name')?.textContent;
+                    const value = member.querySelector('value')?.textContent;
+                    if (name === 'faultCode') faultCode = value;
+                    if (name === 'faultString') faultString = value;
+                });
+                
+                throw new Error(`Server Fault ${faultCode}: ${faultString}`);
+            }
+            
+            // Verificar si hay una respuesta válida
+            const valueNode = xmlDoc.querySelector('methodResponse params param value');
+            if (!valueNode) {
+                const responseType = xmlDoc.documentElement?.tagName || 'unknown';
+                throw new Error(`Invalid XML-RPC response structure. Got '${responseType}' instead of expected 'methodResponse'`);
             }
             
             // Parsear el valor de respuesta
-            return this.parseXmlValue(xmlDoc.querySelector('params param value'));
+            return this.parseXmlValue(valueNode);
             
         } catch (error) {
-            console.error('Error parsing XML response:', error);
-            throw new Error('Failed to parse XML-RPC response');
+            if (error.message.includes('XML-RPC') || error.message.includes('Server Fault') || error.message.includes('Invalid XML')) {
+                throw error; // Re-throw errores específicos que ya tienen buen formato
+            }
+            throw new Error(`XML parsing failed: ${error.message}`);
         }
     }
 
     // Método auxiliar para parsear valores XML-RPC
     parseXmlValue(valueNode) {
-        if (!valueNode) return null;
-        
-        // Array
-        const arrayNode = valueNode.querySelector('array data');
-        if (arrayNode) {
-            const values = arrayNode.querySelectorAll(':scope > value'); // Solo hijos directos
-            return Array.from(values).map(v => this.parseXmlValue(v));
+        if (!valueNode) {
+            throw new Error('Missing value node in XML response');
         }
         
-        // Struct
-        const structNode = valueNode.querySelector('struct');
-        if (structNode) {
-            const members = structNode.querySelectorAll(':scope > member'); // Solo hijos directos
-            const obj = {};
-            members.forEach(member => {
-                const name = member.querySelector('name')?.textContent;
-                const value = member.querySelector('value');
-                if (name && value) {
-                    obj[name] = this.parseXmlValue(value);
+        try {
+            // Array
+            const arrayNode = valueNode.querySelector('array data');
+            if (arrayNode) {
+                const values = arrayNode.querySelectorAll(':scope > value');
+                return Array.from(values).map((v, index) => {
+                    try {
+                        return this.parseXmlValue(v);
+                    } catch (error) {
+                        throw new Error(`Error parsing array item ${index}: ${error.message}`);
+                    }
+                });
+            }
+            
+            // Struct
+            const structNode = valueNode.querySelector('struct');
+            if (structNode) {
+                const members = structNode.querySelectorAll(':scope > member');
+                const obj = {};
+                
+                members.forEach((member, index) => {
+                    try {
+                        const name = member.querySelector('name')?.textContent;
+                        const value = member.querySelector('value');
+                        
+                        if (!name) {
+                            throw new Error(`Missing name in struct member ${index}`);
+                        }
+                        if (!value) {
+                            throw new Error(`Missing value in struct member '${name}'`);
+                        }
+                        
+                        obj[name] = this.parseXmlValue(value);
+                    } catch (error) {
+                        throw new Error(`Error parsing struct member ${index}: ${error.message}`);
+                    }
+                });
+                return obj;
+            }
+            
+            // Tipos primitivos
+            const stringNode = valueNode.querySelector('string');
+            if (stringNode) {
+                return stringNode.textContent || '';
+            }
+            
+            const intNode = valueNode.querySelector('i4') || valueNode.querySelector('int');
+            if (intNode) {
+                const intValue = parseInt(intNode.textContent);
+                if (isNaN(intValue)) {
+                    throw new Error(`Invalid integer value: '${intNode.textContent}'`);
                 }
-            });
-            return obj;
+                return intValue;
+            }
+            
+            const booleanNode = valueNode.querySelector('boolean');
+            if (booleanNode) {
+                return booleanNode.textContent === '1';
+            }
+            
+            const doubleNode = valueNode.querySelector('double');
+            if (doubleNode) {
+                const doubleValue = parseFloat(doubleNode.textContent);
+                if (isNaN(doubleValue)) {
+                    throw new Error(`Invalid double value: '${doubleNode.textContent}'`);
+                }
+                return doubleValue;
+            }
+            
+            // Si no hay tipo específico, verificar si hay contenido directo de texto
+            const textContent = valueNode.textContent?.trim();
+            if (textContent && !valueNode.querySelector('*')) {
+                return textContent;
+            }
+            
+            // Default: return as string si hay contenido
+            return textContent || '';
+            
+        } catch (error) {
+            if (error.message.includes('Error parsing')) {
+                throw error; // Re-throw errores específicos
+            }
+            throw new Error(`Failed to parse XML value: ${error.message}`);
         }
-        
-        // String
-        const stringNode = valueNode.querySelector('string');
-        if (stringNode) {
-            return stringNode.textContent;
-        }
-        
-        // Integer
-        const intNode = valueNode.querySelector('i4') || valueNode.querySelector('int');
-        if (intNode) {
-            return parseInt(intNode.textContent);
-        }
-        
-        // Boolean
-        const booleanNode = valueNode.querySelector('boolean');
-        if (booleanNode) {
-            return booleanNode.textContent === '1';
-        }
-        
-        // Double
-        const doubleNode = valueNode.querySelector('double');
-        if (doubleNode) {
-            return parseFloat(doubleNode.textContent);
-        }
-        
-        // Si no hay tipo específico, verificar si hay contenido directo de texto
-        const textContent = valueNode.textContent?.trim();
-        if (textContent && !valueNode.querySelector('*')) {
-            return textContent;
-        }
-        
-        // Default: return as string si hay contenido
-        return textContent || '';
     }
 
     // Test de conexión
@@ -214,15 +295,14 @@ class KeapAPI {
             const result = await this.xmlRpcCall('DataService.ping', []);
             return { success: true, data: result };
         } catch (error) {
-            const errorInfo = handleError(error);
+            const errorInfo = handleError(error, 'Ping test');
             return { success: false, error: errorInfo };
         }
     }
 
-//XML FUNCTIONS------------------------------------------------------------------------------------------------------------------------------
+    //XML FUNCTIONS------------------------------------------------------------------------------------------------------------------------------
     async getContacts(queryParams, fields = ['Id', 'FirstName', 'LastName', 'Email','Phone1','DateCreated']) {
         try {
-            console.log('parametros',queryParams)
             queryParams.query = cleanParams(queryParams.query)
             const result = await this.xmlRpcCall('DataService.query', [
                 'Contact',      // table
@@ -243,13 +323,30 @@ class KeapAPI {
                 date_created: parseXmlRpcDate(c.DateCreated)
             })) };
         } catch (error) {
-            console.error('Error in getContacts:', error);
-            const errorInfo = handleError(error);
+            console.error('Error in getContacts:', error.message);
+            const errorInfo = handleError(error, 'Get Contacts');
             return { success: false, error: errorInfo };
         }
     }
 
+    async createOrUpdateContact(contactData){
+        try {
+            const result = await this.xmlRpcCall('ContactService.addWithDupCheck',[
+                contactData,
+                'EmailAndName'
+            ])
 
+            return {success: true, status: result}
+        } catch (error) {
+            console.error('Error in createOrUpdateContact:', error.message);
+            const errorInfo = handleError(error, 'Create/Update Contact');
+            return { success: false, error: errorInfo };            
+        }
+    }
+
+    async createContact(contactData){
+        
+    }
 }
 
 const keapAPI = new KeapAPI();

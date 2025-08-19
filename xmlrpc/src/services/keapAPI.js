@@ -64,13 +64,13 @@ const handleError = (error, context = '') => {
 }
 
 function parseXmlRpcDate(dateString) {
-  // "20250220T10:22:14" -> "2025-02-20T10:22:14"
-  const year = dateString.substring(0, 4);
-  const month = dateString.substring(4, 6);
-  const day = dateString.substring(6, 8);
-  const time = dateString.substring(9); // "10:22:14"
-  
-  return new Date(`${year}-${month}-${day}T${time}`);
+    // "20250220T10:22:14" -> "2025-02-20T10:22:14"
+    const year = dateString.substring(0, 4);
+    const month = dateString.substring(4, 6);
+    const day = dateString.substring(6, 8);
+    const time = dateString.substring(9); // "10:22:14"
+
+    return new Date(`${year}-${month}-${day}T${time}`);
 }
 
 class KeapAPI {
@@ -82,7 +82,7 @@ class KeapAPI {
     // Método genérico para llamadas XML-RPC usando xmlrpc-parser
     async xmlRpcCall(method, params = []) {
         const context = `XML-RPC ${method}`;
-        
+
         try {
             // Obtener access token
             const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
@@ -108,7 +108,7 @@ class KeapAPI {
 
             // Parsear la respuesta
             let parsedResponse;
-            
+
             try {
                 // Verificar si XmlRpcResponse necesita ser instanciado diferente
                 if (typeof XmlRpcResponse === 'function') {
@@ -116,7 +116,7 @@ class KeapAPI {
                 } else {
                     parsedResponse = XmlRpcResponse(response.data);
                 }
-                
+
                 // Verificar si los métodos existen antes de usarlos
                 if (parsedResponse && typeof parsedResponse.isFault === 'function') {
                     if (parsedResponse.isFault()) {
@@ -128,19 +128,19 @@ class KeapAPI {
                     // Fallback: parsear manualmente el XML
                     return this.parseXmlRpcResponse(response.data);
                 }
-                
+
             } catch (parseError) {
                 return this.parseXmlRpcResponse(response.data);
             }
 
         } catch (error) {
             const errorDetails = handleError(error, context);
-            
+
             // Re-throw con más contexto específico
             const enhancedError = new Error(`${context} failed: ${errorDetails.message}`);
             enhancedError.originalError = error;
             enhancedError.context = context;
-            
+
             throw enhancedError;
         }
     }
@@ -155,40 +155,40 @@ class KeapAPI {
             // Crear un parser DOM
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
-            
+
             // Verificar errores de parsing
             const parserError = xmlDoc.querySelector('parsererror');
             if (parserError) {
                 throw new Error(`Invalid XML format: ${parserError.textContent.split('\n')[0]}`);
             }
-            
+
             // Verificar si es un fault
             const faultNode = xmlDoc.querySelector('methodResponse fault');
             if (faultNode) {
                 const structMembers = faultNode.querySelectorAll('struct member');
                 let faultCode = 'Unknown';
                 let faultString = 'Unknown fault';
-                
+
                 structMembers.forEach(member => {
                     const name = member.querySelector('name')?.textContent;
                     const value = member.querySelector('value')?.textContent;
                     if (name === 'faultCode') faultCode = value;
                     if (name === 'faultString') faultString = value;
                 });
-                
+
                 throw new Error(`Server Fault ${faultCode}: ${faultString}`);
             }
-            
+
             // Verificar si hay una respuesta válida
             const valueNode = xmlDoc.querySelector('methodResponse params param value');
             if (!valueNode) {
                 const responseType = xmlDoc.documentElement?.tagName || 'unknown';
                 throw new Error(`Invalid XML-RPC response structure. Got '${responseType}' instead of expected 'methodResponse'`);
             }
-            
+
             // Parsear el valor de respuesta
             return this.parseXmlValue(valueNode);
-            
+
         } catch (error) {
             if (error.message.includes('XML-RPC') || error.message.includes('Server Fault') || error.message.includes('Invalid XML')) {
                 throw error; // Re-throw errores específicos que ya tienen buen formato
@@ -202,7 +202,7 @@ class KeapAPI {
         if (!valueNode) {
             throw new Error('Missing value node in XML response');
         }
-        
+
         try {
             // Array
             const arrayNode = valueNode.querySelector('array data');
@@ -216,25 +216,25 @@ class KeapAPI {
                     }
                 });
             }
-            
+
             // Struct
             const structNode = valueNode.querySelector('struct');
             if (structNode) {
                 const members = structNode.querySelectorAll(':scope > member');
                 const obj = {};
-                
+
                 members.forEach((member, index) => {
                     try {
                         const name = member.querySelector('name')?.textContent;
                         const value = member.querySelector('value');
-                        
+
                         if (!name) {
                             throw new Error(`Missing name in struct member ${index}`);
                         }
                         if (!value) {
                             throw new Error(`Missing value in struct member '${name}'`);
                         }
-                        
+
                         obj[name] = this.parseXmlValue(value);
                     } catch (error) {
                         throw new Error(`Error parsing struct member ${index}: ${error.message}`);
@@ -242,13 +242,13 @@ class KeapAPI {
                 });
                 return obj;
             }
-            
+
             // Tipos primitivos
             const stringNode = valueNode.querySelector('string');
             if (stringNode) {
                 return stringNode.textContent || '';
             }
-            
+
             const intNode = valueNode.querySelector('i4') || valueNode.querySelector('int');
             if (intNode) {
                 const intValue = parseInt(intNode.textContent);
@@ -257,12 +257,12 @@ class KeapAPI {
                 }
                 return intValue;
             }
-            
+
             const booleanNode = valueNode.querySelector('boolean');
             if (booleanNode) {
                 return booleanNode.textContent === '1';
             }
-            
+
             const doubleNode = valueNode.querySelector('double');
             if (doubleNode) {
                 const doubleValue = parseFloat(doubleNode.textContent);
@@ -271,16 +271,16 @@ class KeapAPI {
                 }
                 return doubleValue;
             }
-            
+
             // Si no hay tipo específico, verificar si hay contenido directo de texto
             const textContent = valueNode.textContent?.trim();
             if (textContent && !valueNode.querySelector('*')) {
                 return textContent;
             }
-            
+
             // Default: return as string si hay contenido
             return textContent || '';
-            
+
         } catch (error) {
             if (error.message.includes('Error parsing')) {
                 throw error; // Re-throw errores específicos
@@ -301,7 +301,7 @@ class KeapAPI {
     }
 
     //XML FUNCTIONS------------------------------------------------------------------------------------------------------------------------------
-    async getContacts(queryParams, fields = ['Id', 'FirstName', 'LastName', 'Email','Phone1','DateCreated']) {
+    async getContacts(queryParams, fields = ['Id', 'FirstName', 'LastName', 'Email', 'Phone1', 'DateCreated']) {
         try {
             queryParams.query = cleanParams(queryParams.query)
             const result = await this.xmlRpcCall('DataService.query', [
@@ -313,15 +313,17 @@ class KeapAPI {
                 queryParams.OrderBy,//Field to order by
                 true//ASCENDING OR DESCENDING (true = asc)
             ]);
-            
-            return { success: true, contacts: result.map(c => ({
-                id: c.Id,
-                given_name: c.FirstName,
-                family_name: c.LastName,
-                email_addresses:[{email:c.Email}],
-                phone_numbers:[{number:c.Phone1}],
-                date_created: parseXmlRpcDate(c.DateCreated)
-            })) };
+
+            return {
+                success: true, contacts: result.map(c => ({
+                    id: c.Id,
+                    given_name: c.FirstName,
+                    family_name: c.LastName,
+                    email_addresses: [{ email: c.Email }],
+                    phone_numbers: [{ number: c.Phone1 }],
+                    date_created: parseXmlRpcDate(c.DateCreated)
+                }))
+            };
         } catch (error) {
             console.error('Error in getContacts:', error.message);
             const errorInfo = handleError(error, 'Get Contacts');
@@ -329,23 +331,66 @@ class KeapAPI {
         }
     }
 
-    async createOrUpdateContact(contactData){
+    async createOrUpdateContact(duplicateOption = 'Email', contactData) {
         try {
-            const result = await this.xmlRpcCall('ContactService.addWithDupCheck',[
+            const result = await this.xmlRpcCall('ContactService.addWithDupCheck', [
                 contactData,
-                'EmailAndName'
+                duplicateOption
             ])
 
-            return {success: true, status: result}
+            return { success: true, status: result }
         } catch (error) {
             console.error('Error in createOrUpdateContact:', error.message);
             const errorInfo = handleError(error, 'Create/Update Contact');
-            return { success: false, error: errorInfo };            
+            return { success: false, error: errorInfo };
         }
     }
 
-    async createContact(contactData){
-        
+    async createContact(contactData) {
+        try {
+            const result = await this.xmlRpcCall('ContactService.add', [
+                contactData
+            ])
+            return { sucess: true, data: result }
+        } catch (error) {
+            const errorInfo = handleError(error, 'Create Contact');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getContactById(contactId) {
+        try {
+            const result = await this.xmlRpcCall('ContactService.load', [
+                contactId,
+                ['Id', 'FirstName', 'MiddleName', 'LastName','JobTitle','ContactType','SpouseName','Website','Birthday',
+                 'Anniversary','Company','LeadSource'
+                ]
+
+            ])
+            console.log(result)
+            return {
+                    given_name:result.FirstName,
+                    middle_name:result.MiddleName,
+                    family_name:result.LastName,
+                    id:result.Id,
+                    job_title:result.JobTitle,
+                    contact_type:result.ContactType,
+                    spouse_name:result.SpouseName,
+                    website:result.Website,
+                    anniversary:result.Anniversary,
+                    company:result.Company,
+                    source_type:result.LeadSource
+
+
+
+
+
+                
+            }
+        } catch (error) {
+            const errorInfo = handleError(error, 'getContactById');
+            return { success: false, error: errorInfo };
+        }
     }
 }
 

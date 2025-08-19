@@ -155,7 +155,7 @@ if (formData.otherType) payload.Address3Type = formData.otherType;
       console.log('Payload:', payload);
 
       // ← CAMBIOS PRINCIPALES AQUÍ:
-      const response = await keapAPI.createOrUpdateContact(payload); // Usar el método correcto + await
+      const response = await keapAPI.createOrUpdateContact(formData.duplicateOption,payload); // Usar el método correcto + await
       console.log('Success response:', response);
 
       // Mostrar mensaje de éxito usando setError en lugar de toast

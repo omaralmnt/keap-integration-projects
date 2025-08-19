@@ -267,10 +267,10 @@ export function ContactProfile() {
         )}
       </Section>
       {/* Credit Cards Section */}
-      <TagSection contactId={id}/>
+      {/* <TagSection contactId={id}/>
       <EmailSection contactId={contact?.id} />
 
-      <CreditCardSection contactId={id}/>
+      <CreditCardSection contactId={id}/> */}
 
     
       {/* Email Addresses */}

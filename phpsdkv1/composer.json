@@ -1,0 +1,25 @@
+{
+    "name": "almonm02/phpsdkv1",
+    "autoload": {
+        "psr-4": {
+            "Almonm02\\Phpsdkv1\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "omaralmnt",
+            "email": "omaralmnt@gmail.com"
+        }
+    ],
+    "require": {
+        "guzzlehttp/guzzle": "^7.0",
+        "infusionsoft/php-sdk": "1.5.*",
+        "php-http/message-factory": "^1.1",
+        "nyholm/psr7": "^1.8"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}

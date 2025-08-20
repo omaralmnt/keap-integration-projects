@@ -101,7 +101,7 @@ const handleXmlRpcRequest = async (req, res) => {
   // Mantener Authorization header si existe
   if (req.headers.authorization) {
     headers['Authorization'] = req.headers.authorization;
-    console.log('🔧 Authorization header:', req.headers.authorization?.substring(0, 20) + '...');
+    // console.log('🔧 Authorization header:', req.headers.authorization?.substring(0, 20) + '...');
   }
   
   // console.log('🔧 Final headers:', headers);

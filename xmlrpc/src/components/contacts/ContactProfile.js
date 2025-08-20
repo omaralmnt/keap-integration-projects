@@ -93,6 +93,7 @@ export function ContactProfile() {
       setLoading(true);
       const contactData = await keapAPI.getContactById(id);
       setContact(contactData);
+      console.log(contactData)
       setEditData(contactData);
     } catch (err) {
       setError('Failed to load contact: ' + err.message);
@@ -267,8 +268,8 @@ export function ContactProfile() {
         )}
       </Section>
       {/* Credit Cards Section */}
-      {/* <TagSection contactId={id}/>
-      <EmailSection contactId={contact?.id} />
+      <TagSection contactId={id}/>
+      {/* <EmailSection contactId={contact?.id} />
 
       <CreditCardSection contactId={id}/> */}
 
@@ -538,7 +539,7 @@ export function ContactProfile() {
       </Section>
 
       {/* Custom Fields */}
-      <Section icon={Tag} title="Custom Fields">
+      {/* <Section icon={Tag} title="Custom Fields">
         {isEditing ? (
           <div className="space-y-3">
             {(editData.custom_fields || []).map((field, index) => (
@@ -564,15 +565,15 @@ export function ContactProfile() {
             )) || <p className="text-gray-500 text-sm">No custom fields</p>}
           </div>
         )}
-      </Section>
+      </Section> */}
 
       {/* Timestamps */}
       <Section icon={Clock} title="Timestamps">
         <div className="grid grid-cols-2 gap-4">
-          <InfoItem label="Created" value={formatDateTime(contact?.date_created)} />
-          <InfoItem label="Updated" value={formatDateTime(contact?.last_updated)} />
-          <InfoItem label="Email Status" value={contact?.email_status} />
-          <InfoItem label="Email Opted In" value={contact?.email_opted_in ? 'Yes' : 'No'} />
+          <InfoItem label="Created" value={contact?.date_created} />
+          <InfoItem label="Updated" value={contact?.last_updated} />
+          {/* <InfoItem label="Email Status" value={contact?.email_status} />
+          <InfoItem label="Email Opted In" value={contact?.email_opted_in ? 'Yes' : 'No'} /> */}
           {contact?.origin?.ip_address && <InfoItem label="Origin IP" value={contact.origin.ip_address} />}
         </div>
       </Section>

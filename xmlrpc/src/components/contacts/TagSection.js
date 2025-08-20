@@ -535,7 +535,7 @@ export function TagSection({ contactId }) {
     const offset = (page - 1) * pageLimit;
     
     const result = await keapAPI.getContactTags(contactId, { offset, limit: pageLimit });
-    
+    console.log('tags',result)
     // Check if the operation was successful
     if (result.success === false) {
       console.error('Error loading contact tags:', result.error);

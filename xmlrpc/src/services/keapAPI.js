@@ -1,6 +1,5 @@
 import { XmlRpcMessage, XmlRpcResponse } from 'xmlrpc-parser';
 import api from './httpClient'; // Tu cliente HTTP existente
-import { data } from 'react-router-dom';
 
 function cleanParams(params) {
     const result = {};
@@ -363,11 +362,26 @@ class KeapAPI {
             const result = await this.xmlRpcCall('ContactService.load', [
                 contactId,
                 ['Id', 'FirstName', 'MiddleName', 'LastName','JobTitle','ContactType','SpouseName','Website','Birthday',
-                 'Anniversary','Company','LeadSource'
+                 'Anniversary','Company','LeadSource','OwnerID','TimeZone','Email','EmailAddress2','EmailAddress3','Phone1',
+                 'Phone1Type','Phone1Ext','Phone2','Phone2Type','Phone2Ext','Phone3','Phone3Type','Phone3Ext',
+                 'Phone4','Phone4Type','Phone4Ext','Phone5','Phone5Type','Phone5Ext','Fax1','Fax1Type','Fax2','Fax2Type',
+                 'DateCreated','LastUpdated'
                 ]
 
             ])
-            console.log(result)
+            const resultSocial = await this.xmlRpcCall('DataService.query',[
+                'SocialAccount',
+                10,
+                0,
+                {
+                    'ContactId': contactId
+                },
+                ['AccountName','AccountType']
+
+            ])
+
+            console.log('social ',resultSocial)
+            // console.log(result)
             return {
                     given_name:result.FirstName,
                     middle_name:result.MiddleName,
@@ -379,12 +393,77 @@ class KeapAPI {
                     website:result.Website,
                     anniversary:result.Anniversary,
                     company:result.Company,
-                    source_type:result.LeadSource
+                    source_type:result.LeadSource,
+                    owner_id:result.OwnerID,
+                    time_zone:result.TimeZone,
+                    email_addresses:[
+                    {
+                        email:result.Email,
+                        field:'EMAIL1'
+                    },
+                    {
+                        email:result.EmailAddress2,
+                        field:'EMAIL2',
+                        
+                    },
+                    {
+                        email:result.EmailAddress3,
+                        field:'EMAIL3',
+                        
+                    }
+                    ],
+                    phone_numbers:[
+                        {
+                            number: result.Phone1,
+                            field:'PHONE1' ,
+                            type: result.Phone1Type,
+                            extension: result.Phone1Ext,
+                        },
 
-
-
-
-
+                        {
+                            number: result.Phone2,
+                            field:'PHONE2' ,
+                            type: result.Phone2Type,
+                            extension: result.Phone2Ext,
+                        },
+                        {
+                            number: result.Phone3,
+                            field:'PHONE3' ,
+                            type: result.Phone3Type,
+                            extension: result.Phone3Ext,
+                        },
+                        {
+                            number: result.Phone4,
+                            field:'PHONE4' ,
+                            type: result.Phone4Type,
+                            extension: result.Phone4Ext,
+                        },
+                        {
+                            number: result.Phone5,
+                            field:'PHONE5' ,
+                            type: result.Phone5Type,
+                            extension: result.Phone5Ext,
+                        },
+                    ],
+                    fax_numbers:[
+                        {
+                            field: 'FAX1' ,
+                            number: result.Fax1,
+                            type: result.Fax1Type
+                        },
+                        {
+                            field: 'FAX2' ,
+                            number: result.Fax2,
+                            type: result.Fax2Type
+                        }
+                    ],
+                    social_accounts:
+                        resultSocial.map(item => ({
+                            type: item.AccountType,
+                            name:item.AccountName
+                    })),
+                    date_created: result.DateCreated,
+                    last_updated: result.LastUpdated
                 
             }
         } catch (error) {
@@ -392,6 +471,76 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
+
+
+    async getContactTags(contactId,queryParams){
+        try {
+            const result = await this.xmlRpcCall('DataService.query',[
+                'ContactGroupAssign',
+                queryParams.limit,
+                queryParams.offset,
+                {
+                    contactId
+                },
+                ['ContactGroup','GroupId']
+            ])
+            const tags = result.map((item) => ({
+                    tag: {
+                        id: item.GroupId,
+                        name: item.ContactGroup
+                    },
+                    date_applied: null
+                }))
+
+                return {
+                    success: true, 
+                    tags: tags,
+                    count: tags.length
+                };
+
+
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'getContactById');
+            return { success: false, error: errorInfo };            
+        }
+    }
+
+    /////////////TAGS
+    async getTags(contactId,queryParams){
+        try {
+            const result = await this.xmlRpcCall('DataService.query',[
+                'ContactGroupAssign',
+                queryParams.limit,
+                queryParams.offset,
+                {
+                    contactId
+                },
+                ['ContactGroup','GroupId']
+            ])
+            const tags = result.map((item) => ({
+                    tag: {
+                        id: item.GroupId,
+                        name: item.ContactGroup
+                    },
+                    date_applied: null
+                }))
+
+                return {
+                    success: true, 
+                    tags: tags,
+                    count: tags.length
+                };
+
+
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'getContactById');
+            return { success: false, error: errorInfo };            
+        }
+    }
+
+
 }
 
 const keapAPI = new KeapAPI();

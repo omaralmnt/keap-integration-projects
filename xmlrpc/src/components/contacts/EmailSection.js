@@ -187,7 +187,7 @@ const AddEmailModal = ({ isOpen, onClose, onAdd, contactId }) => {
       opened_date: formatDateTimeForAPI(formData.opened_date),
       clicked_date: formatDateTimeForAPI(formData.clicked_date),
     };
-
+    console.log('asd',emailData)
     // Remove empty fields
     Object.keys(emailData).forEach(key => {
       if (emailData[key] === '' || emailData[key] === null) {
@@ -697,8 +697,8 @@ export function EmailSection({ contactId }) {
       queryParams.email = searchEmail;
     }
 
-    const result = await keapAPI.getEmailsByContactId(contactId, queryParams);
-    
+    // const result = await keapAPI.getEmailsByContactId(contactId, queryParams);
+    const result = {}
     // Verificar si la operación fue exitosa
     if (result.success === false) {
       console.error('Error loading emails:', result.error);

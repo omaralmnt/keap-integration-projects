@@ -535,7 +535,7 @@ export function TagSection({ contactId }) {
     const offset = (page - 1) * pageLimit;
     
     const result = await keapAPI.getContactTags(contactId, { offset, limit: pageLimit });
-    console.log('tags',result)
+    // console.log('tags',result)
     // Check if the operation was successful
     if (result.success === false) {
       console.error('Error loading contact tags:', result.error);
@@ -650,7 +650,7 @@ export function TagSection({ contactId }) {
         }
       } else if (tagToDelete) {
         // Single tag deletion
-        const result = await keapAPI.removeTagFromContact(contactId, tagToDelete.tag.id);
+        const result = await keapAPI.removeTagsFromContact(contactId, [tagToDelete.tag.id] );
         
         if (result.success === false) {
           setError('Failed to remove tag. Please try again.');

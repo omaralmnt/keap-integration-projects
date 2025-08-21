@@ -250,7 +250,7 @@ export function ContactProfile() {
             <Select value={editData.source_type} onChange={(e) => updateField('source_type', e.target.value)}>
               <option value="">Select Source Type</option>
               {['APPOINTMENT', 'FORMAPIHOSTED', 'FORMAPIINTERNAL', 'WEBFORM', 'INTERNALFORM', 'LANDINGPAGE', 'IMPORT', 'MANUAL', 'API', 'OTHER', 'UNKNOWN'].map(type => (
-                <option key={type} value={type}>{type}</option>
+                <option key={type} value={type}>{ type}</option>
               ))}
             </Select>
           </div>
@@ -269,9 +269,9 @@ export function ContactProfile() {
       </Section>
       {/* Credit Cards Section */}
       <TagSection contactId={id}/>
-      {/* <EmailSection contactId={contact?.id} />
+      <EmailSection contactId={contact?.id} />
 
-      <CreditCardSection contactId={id}/> */}
+      <CreditCardSection contactId={id}/>
 
     
       {/* Email Addresses */}

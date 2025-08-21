@@ -155,7 +155,7 @@ const AddCreditCardModal = ({ isOpen, onClose, onAdd, contactId }) => {
       ...formData,
       card_number: formData.card_number.replace(/\s/g, '')
     };
-
+    
     const result = await keapAPI.createCreditCard(contactId, cardData);
     
     // Verificar si la operación fue exitosa

@@ -361,110 +361,110 @@ class KeapAPI {
         try {
             const result = await this.xmlRpcCall('ContactService.load', [
                 contactId,
-                ['Id', 'FirstName', 'MiddleName', 'LastName','JobTitle','ContactType','SpouseName','Website','Birthday',
-                 'Anniversary','Company','LeadSource','OwnerID','TimeZone','Email','EmailAddress2','EmailAddress3','Phone1',
-                 'Phone1Type','Phone1Ext','Phone2','Phone2Type','Phone2Ext','Phone3','Phone3Type','Phone3Ext',
-                 'Phone4','Phone4Type','Phone4Ext','Phone5','Phone5Type','Phone5Ext','Fax1','Fax1Type','Fax2','Fax2Type',
-                 'DateCreated','LastUpdated'
+                ['Id', 'FirstName', 'MiddleName', 'LastName', 'JobTitle', 'ContactType', 'SpouseName', 'Website', 'Birthday',
+                    'Anniversary', 'Company', 'LeadSource', 'OwnerID', 'TimeZone', 'Email', 'EmailAddress2', 'EmailAddress3', 'Phone1',
+                    'Phone1Type', 'Phone1Ext', 'Phone2', 'Phone2Type', 'Phone2Ext', 'Phone3', 'Phone3Type', 'Phone3Ext',
+                    'Phone4', 'Phone4Type', 'Phone4Ext', 'Phone5', 'Phone5Type', 'Phone5Ext', 'Fax1', 'Fax1Type', 'Fax2', 'Fax2Type',
+                    'DateCreated', 'LastUpdated'
                 ]
 
             ])
-            const resultSocial = await this.xmlRpcCall('DataService.query',[
+            const resultSocial = await this.xmlRpcCall('DataService.query', [
                 'SocialAccount',
                 10,
                 0,
                 {
                     'ContactId': contactId
                 },
-                ['AccountName','AccountType']
+                ['AccountName', 'AccountType']
 
             ])
 
-            console.log('social ',resultSocial)
+            // console.log('social ', resultSocial)
             // console.log(result)
             return {
-                    given_name:result.FirstName,
-                    middle_name:result.MiddleName,
-                    family_name:result.LastName,
-                    id:result.Id,
-                    job_title:result.JobTitle,
-                    contact_type:result.ContactType,
-                    spouse_name:result.SpouseName,
-                    website:result.Website,
-                    anniversary:result.Anniversary,
-                    company:result.Company,
-                    source_type:result.LeadSource,
-                    owner_id:result.OwnerID,
-                    time_zone:result.TimeZone,
-                    email_addresses:[
+                given_name: result.FirstName,
+                middle_name: result.MiddleName,
+                family_name: result.LastName,
+                id: result.Id,
+                job_title: result.JobTitle,
+                contact_type: result.ContactType,
+                spouse_name: result.SpouseName,
+                website: result.Website,
+                anniversary: result.Anniversary,
+                company: result.Company,
+                source_type: result.LeadSource,
+                owner_id: result.OwnerID,
+                time_zone: result.TimeZone,
+                email_addresses: [
                     {
-                        email:result.Email,
-                        field:'EMAIL1'
+                        email: result.Email,
+                        field: 'EMAIL1'
                     },
                     {
-                        email:result.EmailAddress2,
-                        field:'EMAIL2',
-                        
-                    },
-                    {
-                        email:result.EmailAddress3,
-                        field:'EMAIL3',
-                        
-                    }
-                    ],
-                    phone_numbers:[
-                        {
-                            number: result.Phone1,
-                            field:'PHONE1' ,
-                            type: result.Phone1Type,
-                            extension: result.Phone1Ext,
-                        },
+                        email: result.EmailAddress2,
+                        field: 'EMAIL2',
 
-                        {
-                            number: result.Phone2,
-                            field:'PHONE2' ,
-                            type: result.Phone2Type,
-                            extension: result.Phone2Ext,
-                        },
-                        {
-                            number: result.Phone3,
-                            field:'PHONE3' ,
-                            type: result.Phone3Type,
-                            extension: result.Phone3Ext,
-                        },
-                        {
-                            number: result.Phone4,
-                            field:'PHONE4' ,
-                            type: result.Phone4Type,
-                            extension: result.Phone4Ext,
-                        },
-                        {
-                            number: result.Phone5,
-                            field:'PHONE5' ,
-                            type: result.Phone5Type,
-                            extension: result.Phone5Ext,
-                        },
-                    ],
-                    fax_numbers:[
-                        {
-                            field: 'FAX1' ,
-                            number: result.Fax1,
-                            type: result.Fax1Type
-                        },
-                        {
-                            field: 'FAX2' ,
-                            number: result.Fax2,
-                            type: result.Fax2Type
-                        }
-                    ],
-                    social_accounts:
-                        resultSocial.map(item => ({
-                            type: item.AccountType,
-                            name:item.AccountName
+                    },
+                    {
+                        email: result.EmailAddress3,
+                        field: 'EMAIL3',
+
+                    }
+                ],
+                phone_numbers: [
+                    {
+                        number: result.Phone1,
+                        field: 'PHONE1',
+                        type: result.Phone1Type,
+                        extension: result.Phone1Ext,
+                    },
+
+                    {
+                        number: result.Phone2,
+                        field: 'PHONE2',
+                        type: result.Phone2Type,
+                        extension: result.Phone2Ext,
+                    },
+                    {
+                        number: result.Phone3,
+                        field: 'PHONE3',
+                        type: result.Phone3Type,
+                        extension: result.Phone3Ext,
+                    },
+                    {
+                        number: result.Phone4,
+                        field: 'PHONE4',
+                        type: result.Phone4Type,
+                        extension: result.Phone4Ext,
+                    },
+                    {
+                        number: result.Phone5,
+                        field: 'PHONE5',
+                        type: result.Phone5Type,
+                        extension: result.Phone5Ext,
+                    },
+                ],
+                fax_numbers: [
+                    {
+                        field: 'FAX1',
+                        number: result.Fax1,
+                        type: result.Fax1Type
+                    },
+                    {
+                        field: 'FAX2',
+                        number: result.Fax2,
+                        type: result.Fax2Type
+                    }
+                ],
+                social_accounts:
+                    resultSocial.map(item => ({
+                        type: item.AccountType,
+                        name: item.AccountName
                     })),
-                    date_created: result.DateCreated,
-                    last_updated: result.LastUpdated
-                
+                date_created: result.DateCreated,
+                last_updated: result.LastUpdated
+
             }
         } catch (error) {
             const errorInfo = handleError(error, 'getContactById');
@@ -473,70 +473,194 @@ class KeapAPI {
     }
 
 
-    async getContactTags(contactId,queryParams){
+    async getContactTags(contactId, queryParams) {
         try {
-            const result = await this.xmlRpcCall('DataService.query',[
+            const result = await this.xmlRpcCall('DataService.query', [
                 'ContactGroupAssign',
                 queryParams.limit,
                 queryParams.offset,
                 {
                     contactId
                 },
-                ['ContactGroup','GroupId']
+                ['ContactGroup', 'GroupId']
             ])
             const tags = result.map((item) => ({
-                    tag: {
-                        id: item.GroupId,
-                        name: item.ContactGroup
-                    },
-                    date_applied: null
-                }))
+                tag: {
+                    id: item.GroupId,
+                    name: item.ContactGroup
+                },
+                date_applied: null
+            }))
 
-                return {
-                    success: true, 
-                    tags: tags,
-                    count: tags.length
-                };
+            return {
+                success: true,
+                tags: tags,
+                count: tags.length
+            };
 
 
 
         } catch (error) {
             const errorInfo = handleError(error, 'getContactById');
-            return { success: false, error: errorInfo };            
+            return { success: false, error: errorInfo };
         }
     }
 
     /////////////TAGS
-    async getTags(contactId,queryParams){
+    async getTags(queryParams) {
         try {
-            const result = await this.xmlRpcCall('DataService.query',[
-                'ContactGroupAssign',
-                queryParams.limit,
-                queryParams.offset,
+            const result = await this.xmlRpcCall('DataService.query', [
+                'ContactGroup',
+                100,
+                0,
                 {
-                    contactId
+
                 },
-                ['ContactGroup','GroupId']
+                ['GroupName', 'Id']
             ])
             const tags = result.map((item) => ({
-                    tag: {
-                        id: item.GroupId,
-                        name: item.ContactGroup
-                    },
-                    date_applied: null
-                }))
 
-                return {
-                    success: true, 
-                    tags: tags,
-                    count: tags.length
-                };
+                id: item.Id,
+                name: item.GroupName
+
+
+            }))
+            console.log('tags', tags)
+            return {
+                success: true,
+                tags: tags,
+                count: tags.length
+            };
 
 
 
         } catch (error) {
-            const errorInfo = handleError(error, 'getContactById');
-            return { success: false, error: errorInfo };            
+            const errorInfo = handleError(error, 'getTags');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async applyTagsToContact(contactId, tagIds) {
+        try {
+            for (const tag in tagIds) {
+                const result = await this.xmlRpcCall('ContactService.addToGroup', [
+                    contactId,
+                    tagIds[tag]
+                ])
+            }
+            return { sucess: true }
+        } catch (error) {
+            const errorInfo = handleError(error, 'applyTagsToContact');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async removeTagsFromContact(contactId, tagIds) {
+        try {
+            console.log(tagIds)
+            for (const tag in tagIds) {
+                await this.xmlRpcCall('ContactService.removeFromGroup', [
+                    contactId,
+                    tagIds[tag]
+                ])
+            }
+            return { sucess: true }
+        } catch (error) {
+            const errorInfo = handleError(error, 'removeTagsFromContact');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    // async getEmailsByContactId(contactId){
+    //     try {
+    //         const result = await this.xmlRpcCall('DataService.query',[
+    //             ''
+
+    //         ])
+    //         return { sucess: true }            
+    //     } catch (error) {
+    //         const errorInfo = handleError(error,'GesEmailsByContactId')
+    //         return { success: false, error: errorInfo };
+
+    //     }
+    // }
+
+    async createEmailRecord(contactId, emailData) {
+        try {
+            const data = [
+                contactId,
+                emailData.sent_from_address,
+                emailData.sent_from_address,
+                emailData.sent_to_address,
+                emailData.sent_to_cc_addresses,
+                emailData.sent_to_bcc_addresses,
+                'Multipart',
+                emailData.subject,
+                emailData.html_content,
+                emailData.plain_content,
+                emailData.headers,
+                emailData.received_date,
+                emailData.sent_date,
+                1
+
+            ]
+            // console.log('h', data)
+            const result = await this.xmlRpcCall('APIEmailService.attachEmail', data)
+            return { success: true, result }
+        } catch (error) {
+            const errorInfo = handleError(error, 'GesEmailsByContactId')
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getCreditCardsByContactId(contactId) {
+        try {
+            const result = await this.xmlRpcCall('DataService.query', [
+                'CreditCard',
+                100,
+                0,
+                {
+                    contactId
+                },
+                ['Id', 'Last4', 'CardType', 'Status'],
+            ])
+            const statusMap = {
+                0: "unknown",
+                1: "error",
+                2: "deleted",
+                3: "OK",
+                4: "inactive"
+            };
+            const data = result.map((data) => ({
+                id: data.Id,
+                card_type: data.CardType,
+                card_number: `xxxxxxxxxxxx${data.Last4}`,
+                validation_status: statusMap[data.Status] || "unknown" // fallback
+            }))
+            return data
+
+        } catch (error) {
+
+            const errorInfo = handleError(error, 'getCreditCardsByContactId')
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async createCreditCard(contactId, cardData) {
+        try {
+            const result = await this.xmlRpcCall('DataService.query',[
+                'CreditCard',
+                {
+                    BillCountry: cardData.country_code,
+                    BillAddress1: cardData.line1,
+                    BillAddress2:cardData.line2,
+                    
+                }
+
+            ])
+        } catch (error) {
+            const errorInfo = handleError(error, 'getCreditCardsByContactId')
+            return { success: false, error: errorInfo }
         }
     }
 

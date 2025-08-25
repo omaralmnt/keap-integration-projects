@@ -328,7 +328,7 @@ export function EmailCompose({ onBack }) {
       switch (activeTab) {
         case 'send':
           const sendData = getPreviewData();
-          if (!sendData.subject || !sendData.user_id || !sendData.contacts.length) {
+          if (!sendData.subject  || !sendData.contacts.length) {
             toast.error('Subject, User ID, and Contacts are required for sending email');
             return;
           }

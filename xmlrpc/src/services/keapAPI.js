@@ -1310,11 +1310,11 @@ class KeapAPI {
     ///////////////////EMAILS ENDPOINTS-------------------------------------------------------------
     async optInEmail(email, reason) {
         try {
-           const result =  await this.xmlRpcCall('APIEmailService.optIn', [
+            const result = await this.xmlRpcCall('APIEmailService.optIn', [
                 email,
                 reason
             ])
-            console.log (result)
+            console.log(result)
             return { success: true }
 
         } catch (error) {
@@ -1339,10 +1339,35 @@ class KeapAPI {
 
     async getOptInStatus(email) {
         try {
-            const result = await this.xmlRpcCall('APIEmailService.getOptStatus',[email])
-            return {success:true, result}
+            const result = await this.xmlRpcCall('APIEmailService.getOptStatus', [email])
+            return { success: true, result }
         } catch (error) {
-            const errorInfo = handleError(error, 'opt in email');
+            const errorInfo = handleError(error, 'opt in status email');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async sendEmail(emailData) {
+        try {
+            console.log(emailData)
+            const result = await this.xmlRpcCall('APIEmailService.sendEmail',[
+                emailData.contacts,
+                emailData.from_address,
+                '~Contact.Email~',
+                emailData.cc_addresses,
+                emailData.bcc_addresses,
+                'Multipart', //Can be HTML, Text
+                emailData.subject,
+                emailData.html_content,
+                emailData.plain_content
+
+
+
+
+            ])
+            return {success: true, result}
+        } catch (error) {
+            const errorInfo = handleError(error, 'send email');
             return { success: false, error: errorInfo };
         }
     }

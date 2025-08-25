@@ -30,7 +30,7 @@ const Input = ({
 // Main Notes Component
 export function Notes() {
   const navigate = useNavigate();
-
+  const [page,setPage] = useState(0)
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -63,7 +63,6 @@ export function Notes() {
   
   // Search parameters
   const [limit, setLimit] = useState(10);
-  const [offset, setOffset] = useState(0);
   const [previous, setPrevious] = useState('');
   const [next, setNext] = useState('');
 
@@ -86,39 +85,40 @@ export function Notes() {
 
   // Search function
   const handlePagination = async (action) => {
-    let data;
+    // let newPage
     if (action === 'next') {
-      data = await keapAPI.getNotesPaginated(next);
-    } else {
-      data = await keapAPI.getNotesPaginated(previous);
-    }
-    console.log(data);
-    setNext(data.next);
-    setPrevious(data.previous);
-    setNotes(data.notes);
-    setTotalCount(data.count);
-  };
+      setPage(page +1)
+      // newPage = page + 1
+    }else{
+      if (page > 0) {
+               setPage(page -1)
 
+      }
+     
+
+    }
+  handleSearch()
+        
+  }
   const handleSearch = async () => {
     try {
       setLoading(true);
       
       const queryParams = {
         limit,
-        offset
+        page: page
       };
 
       // Only add filters if they have values
-      if (selectedSearchContact) {
-        queryParams.contact_id = selectedSearchContact.id;
-      }
-      if (selectedSearchUser) {
-        queryParams.user_id = selectedSearchUser.id;
-      }
+      // if (selectedSearchContact) {
+      //   queryParams.contact_id = selectedSearchContact.id;
+      // }
+      // if (selectedSearchUser) {
+      //   queryParams.user_id = selectedSearchUser.id;
+      // }
 
       const data = await keapAPI.getNotes(queryParams);
-      setNext(data.next);
-      setPrevious(data.previous);
+
       setTotalCount(data.count);
       console.log(data);
       setNotes(data.notes);
@@ -328,7 +328,7 @@ export function Notes() {
       if (updateType === 'update') {
         response = await keapAPI.updateNote(selectedNote.id, noteData);
       } else {
-        response = await keapAPI.replaceNote(selectedNote.id, noteData);
+        response = await keapAPI.updateNote(selectedNote.id, noteData);
       }
       
       console.log('note updated', response);
@@ -493,11 +493,11 @@ export function Notes() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Offset</label>
+            <label className="block text-xs text-gray-500 mb-1">Page</label>
             <Input
               type="number"
-              value={offset}
-              onChange={(e) => setOffset(parseInt(e.target.value) || 0)}
+              value={page}
+              onChange={(e) => setPage(parseInt(e.target.value) || 0)}
               min="0"
             />
           </div>
@@ -509,7 +509,7 @@ export function Notes() {
                 onClick={() => {
                   setSelectedSearchContact(null);
                   setSelectedSearchUser(null);
-                  setOffset(0);
+                  setPage(0);
                 }}
                 className="mr-3"
               >
@@ -623,7 +623,7 @@ export function Notes() {
                       {note.last_updated_by ? (
                         <div>
                           <p className="text-xs">
-                            {note.last_updated_by.given_name} {note.last_updated_by.family_name}
+                            {`user ${note.last_updated_by.user_id}`}
                           </p>
                           <p className="text-xs text-gray-500">ID: {note.last_updated_by.user_id}</p>
                         </div>
@@ -661,13 +661,13 @@ export function Notes() {
           <div className="bg-white px-4 py-3 border-t border-gray-200">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
-                Showing {offset + 1} to {offset + notes.length} of {totalCount} results
+                Showing {page + 1} to {page + notes.length} of {totalCount} results
               </div>
               <div className="flex items-center space-x-3">
                 <Button 
                   variant="outline" 
                   size="sm"
-                  disabled={!previous}
+                  // disabled={!previous}
                   className="inline-flex items-center px-4 py-2 text-sm font-medium"
                   onClick={() => handlePagination('previous')}
                 >
@@ -676,7 +676,7 @@ export function Notes() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  disabled={!next}
+                  // disabled={}
                   className="inline-flex items-center px-4 py-2 text-sm font-medium"
                   onClick={() => handlePagination('next')}
                 >

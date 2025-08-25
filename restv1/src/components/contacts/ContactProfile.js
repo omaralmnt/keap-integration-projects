@@ -94,6 +94,7 @@ export function ContactProfile() {
       const contactData = await keapAPI.getContactById(id);
       setContact(contactData);
       setEditData(contactData);
+      console.log(contactData)
     } catch (err) {
       setError('Failed to load contact: ' + err.message);
     } finally {

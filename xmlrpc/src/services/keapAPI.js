@@ -30,6 +30,22 @@ function cleanParams(params) {
 
     return result;
 }
+function formatToISO(fechaStr) {
+    if (!fechaStr || fechaStr.length < 17) return ""; // evita errores si es undefined o demasiado corta
+
+    const año = fechaStr.slice(0, 4);
+    const mes = fechaStr.slice(4, 6);
+    const dia = fechaStr.slice(6, 8);
+    const hora = fechaStr.slice(9, 11);
+    const minutos = fechaStr.slice(12, 14);
+    const segundos = fechaStr.slice(15, 17);
+
+    const fecha = new Date(Date.UTC(año, mes - 1, dia, hora, minutos, segundos));
+
+    if (isNaN(fecha.getTime())) return "";
+
+    return fecha.toISOString();
+}
 
 const handleError = (error, context = '') => {
     let errorDetails = {
@@ -302,12 +318,15 @@ class KeapAPI {
     //XML FUNCTIONS------------------------------------------------------------------------------------------------------------------------------
     async getContacts(queryParams, fields = ['Id', 'FirstName', 'LastName', 'Email', 'Phone1', 'DateCreated']) {
         try {
+
+
             queryParams.query = cleanParams(queryParams.query)
+            // console.log('he',queryParams.query)
             const result = await this.xmlRpcCall('DataService.query', [
                 'Contact',      // table
                 queryParams.limit,          // limit
                 queryParams.page,           // page
-                queryParams.query,      // queryData
+                queryParams.query || {},      // queryData
                 fields,          // selectedFields
                 queryParams.OrderBy,//Field to order by
                 true//ASCENDING OR DESCENDING (true = asc)
@@ -472,7 +491,135 @@ class KeapAPI {
         }
     }
 
+    async getCompanies(queryParams, fields = [
+        'Id',
+        'Company',
+        'Email',
+        'Phone1',
+        'Website',
+        'City',
+        'State',
+        'Country',
+        'StreetAddress1',
+        'PostalCode',
+        'ContactNotes',
+        'DateCreated'
+    ]) {
+        try {
+            // Limpiar parámetros de consulta
+            const cleanedQuery = cleanParams(queryParams.query || {});
 
+            // Si hay company_name en queryParams, agregarlo a la query
+            if (queryParams.company_name) {
+                cleanedQuery.Company = queryParams.company_name;
+            }
+
+            // Determinar ordenamiento
+            let orderField = 'DateCreated'; // default
+            let orderDirection = true; // true = ASC, false = DESC
+
+            if (queryParams.order) {
+                switch (queryParams.order) {
+                    case 'id':
+                        orderField = 'Id';
+                        break;
+                    case 'date_created':
+                        orderField = 'DateCreated';
+                        break;
+                    case 'name':
+                        orderField = 'Company';
+                        break;
+                    case 'email':
+                        orderField = 'Email';
+                        break;
+                    default:
+                        orderField = 'DateCreated';
+                }
+            }
+
+            if (queryParams.order_direction === 'DESCENDING') {
+                orderDirection = false;
+            }
+
+            // Calcular página basada en offset y limit
+            const page = Math.floor((queryParams.offset || 0) / (queryParams.limit || 50));
+
+            const result = await this.xmlRpcCall('DataService.query', [
+                'Company',           // table
+                queryParams.limit || 50,    // limit
+                page,               // page
+                cleanedQuery,       // queryData
+                fields,             // selectedFields
+                orderField,         // OrderBy field
+                orderDirection      // ASCENDING (true) OR DESCENDING (false)
+            ]);
+
+            // Generar URLs de paginación
+            const currentOffset = queryParams.offset || 0;
+            const limit = queryParams.limit || 50;
+            const hasResults = result && result.length > 0;
+
+            let nextUrl = null;
+            let previousUrl = null;
+
+            if (hasResults && result.length === limit) {
+                // Hay siguiente página
+                const nextOffset = currentOffset + limit;
+                nextUrl = `?limit=${limit}&offset=${nextOffset}&order=${queryParams.order || 'date_created'}&order_direction=${queryParams.order_direction || 'DESCENDING'}`;
+                if (queryParams.company_name) {
+                    nextUrl += `&company_name=${encodeURIComponent(queryParams.company_name)}`;
+                }
+            }
+
+            if (currentOffset > 0) {
+                // Hay página anterior
+                const prevOffset = Math.max(0, currentOffset - limit);
+                previousUrl = `?limit=${limit}&offset=${prevOffset}&order=${queryParams.order || 'date_created'}&order_direction=${queryParams.order_direction || 'DESCENDING'}`;
+                if (queryParams.company_name) {
+                    previousUrl += `&company_name=${encodeURIComponent(queryParams.company_name)}`;
+                }
+            }
+
+            return {
+                success: true,
+                companies: result.map(c => ({
+                    id: c.Id,
+                    company_name: c.Company,
+                    email_address: c.Email,
+                    website: c.Website,
+                    phone_number: {
+                        number: c.Phone1,
+                        extension: '', // XML-RPC no parece tener extensión separada
+                        type: 'Work'
+                    },
+                    fax_number: {
+                        number: '', // Agregar si tienes campo de fax
+                        type: 'Work'
+                    },
+                    address: {
+                        line1: c.StreetAddress1,
+                        line2: '', // Agregar si tienes StreetAddress2
+                        locality: c.City,
+                        region: c.State,
+                        zip_code: c.PostalCode,
+                        zip_four: '', // Agregar si tienes ZipFour1
+                        country_code: c.Country
+                    },
+                    notes: c.ContactNotes,
+                    email_status: 'Unknown', // Agregar lógica si tienes este campo
+                    date_created: parseXmlRpcDate(c.DateCreated),
+                    opt_in_reason: '' // Agregar si tienes este campo
+                })),
+                next: nextUrl,
+                previous: previousUrl,
+                count: result.length
+            };
+        } catch (error) {
+            console.error('Error in getCompanies:', error.message);
+            const errorInfo = handleError(error, 'Get Companies');
+            return { success: false, error: errorInfo };
+        }
+    }
     async getContactTags(contactId, queryParams) {
         try {
             const result = await this.xmlRpcCall('DataService.query', [
@@ -648,23 +795,557 @@ class KeapAPI {
 
     async createCreditCard(contactId, cardData) {
         try {
-            const result = await this.xmlRpcCall('DataService.query',[
+            const result = await this.xmlRpcCall('DataService.add', [
                 'CreditCard',
                 {
-                    BillCountry: cardData.country_code,
-                    BillAddress1: cardData.line1,
-                    BillAddress2:cardData.line2,
-                    
+                    ContactId: contactId,
+                    BillCountry: cardData.address?.country_code || '',
+                    BillAddress1: cardData.address?.line1 || '',
+                    BillAddress2: cardData.address?.line2 || '',
+                    BillCity: cardData.address?.locality || '',
+                    BillState: cardData.address?.region || '',
+                    BillZip: cardData.address?.postal_code || cardData.address?.zip_code || '',
+                    CardNumber: cardData.card_number,
+                    CardType: cardData.card_type,
+                    ExpirationMonth: cardData.expiration_month,
+                    ExpirationYear: cardData.expiration_year,
+                    CVV2: cardData.verification_code,
+                    NameOnCard: cardData.name_on_card,
+                    Email: cardData.email_address,
+                    MaestroIssueNumber: cardData.maestro_issue_number || '',
+                    StartDateMonth: cardData.maestro_start_date_month || '',
+                    StartDateYear: cardData.maestro_start_date_year || '',
+                    Status: 3 // 3 = OK (activa)
                 }
+            ]);
+            return { success: true, result }
 
-            ])
         } catch (error) {
-            const errorInfo = handleError(error, 'getCreditCardsByContactId')
-            return { success: false, error: errorInfo }
+            const errorInfo = handleError(error, 'createCreditCard');
+            return {
+                success: false,
+                error: errorInfo
+            };
         }
     }
 
+    async updateContact(contactId, contactData) {
+        try {
+            // Mapear el payload JSON al formato esperado por la API de Infusionsoft
+            const mappedData = {};
 
+            // Campos básicos
+            if (contactData.given_name) mappedData.FirstName = contactData.given_name;
+            if (contactData.family_name) mappedData.LastName = contactData.family_name;
+            if (contactData.middle_name) mappedData.MiddleName = contactData.middle_name;
+            if (contactData.suffix) mappedData.Suffix = contactData.suffix;
+            if (contactData.job_title) mappedData.JobTitle = contactData.job_title;
+            if (contactData.spouse_name) mappedData.SpouseName = contactData.spouse_name;
+            if (contactData.website) mappedData.Website = contactData.website;
+            if (contactData.time_zone) mappedData.TimeZone = contactData.time_zone;
+            if (contactData.contact_type) mappedData.ContactType = contactData.contact_type;
+            if (contactData.owner_id) mappedData.OwnerID = contactData.owner_id;
+
+            // Fechas
+            if (contactData.birthday) mappedData.Birthday = contactData.birthday;
+            if (contactData.anniversary) mappedData.Anniversary = contactData.anniversary;
+
+            // Compañía
+            if (contactData.company && contactData.company.company_name) {
+                mappedData.Company = contactData.company.company_name;
+                if (contactData.company.id) mappedData.CompanyID = contactData.company.id;
+            }
+
+            // Emails
+            if (contactData.email_addresses && contactData.email_addresses.length > 0) {
+                contactData.email_addresses.forEach(emailObj => {
+                    switch (emailObj.field) {
+                        case 'EMAIL1':
+                            mappedData.Email = emailObj.email;
+                            break;
+                        case 'EMAIL2':
+                            mappedData.EmailAddress2 = emailObj.email;
+                            break;
+                        case 'EMAIL3':
+                            mappedData.EmailAddress3 = emailObj.email;
+                            break;
+                        default:
+                            console.log('default')
+                            break
+                    }
+                });
+            }
+
+            // Teléfonos
+            if (contactData.phone_numbers && contactData.phone_numbers.length > 0) {
+                contactData.phone_numbers.forEach(phoneObj => {
+                    const phoneField = phoneObj.field;
+                    // Mapear tipos de teléfono directamente
+                    const phoneTypeMapping = {
+                        'HOME': 'Home',
+                        'WORK': 'Work',
+                        'MOBILE': 'Mobile',
+                        'OTHER': 'Other'
+                    };
+                    const phoneType = phoneTypeMapping[phoneObj.type] || 'Other';
+
+                    switch (phoneField) {
+                        case 'PHONE1':
+                            mappedData.Phone1 = phoneObj.number;
+                            if (phoneObj.extension) mappedData.Phone1Ext = phoneObj.extension;
+                            mappedData.Phone1Type = phoneType;
+                            break;
+                        case 'PHONE2':
+                            mappedData.Phone2 = phoneObj.number;
+                            if (phoneObj.extension) mappedData.Phone2Ext = phoneObj.extension;
+                            mappedData.Phone2Type = phoneType;
+                            break;
+                        case 'PHONE3':
+                            mappedData.Phone3 = phoneObj.number;
+                            if (phoneObj.extension) mappedData.Phone3Ext = phoneObj.extension;
+                            mappedData.Phone3Type = phoneType;
+                            break;
+                        case 'PHONE4':
+                            mappedData.Phone4 = phoneObj.number;
+                            if (phoneObj.extension) mappedData.Phone4Ext = phoneObj.extension;
+                            mappedData.Phone4Type = phoneType;
+                            break;
+                        case 'PHONE5':
+                            mappedData.Phone5 = phoneObj.number;
+                            if (phoneObj.extension) mappedData.Phone5Ext = phoneObj.extension;
+                            mappedData.Phone5Type = phoneType;
+                            break;
+                        default:
+                            console.log('default')
+                            break
+                    }
+                });
+            }
+
+            // Direcciones
+            if (contactData.addresses && contactData.addresses.length > 0) {
+                const address = contactData.addresses[0]; // Tomamos la primera dirección
+
+                if (address.field === 'BILLING') {
+                    mappedData.StreetAddress1 = address.line1;
+                    mappedData.StreetAddress2 = address.line2;
+                    mappedData.City = address.locality;
+                    mappedData.State = address.region;
+                    mappedData.PostalCode = address.postal_code;
+                    mappedData.Country = address.country_code;
+                    if (address.zip_four) mappedData.ZipFour1 = address.zip_four;
+                }
+
+                // Si hay múltiples direcciones, mapear a Address2 y Address3
+                if (contactData.addresses.length > 1) {
+                    const address2 = contactData.addresses[1];
+                    mappedData.Address2Street1 = address2.line1;
+                    mappedData.Address2Street2 = address2.line2;
+                    mappedData.City2 = address2.locality;
+                    mappedData.State2 = address2.region;
+                    mappedData.PostalCode2 = address2.postal_code;
+                    mappedData.Country2 = address2.country_code;
+                    mappedData.Address2Type = address2.field;
+                    if (address2.zip_four) mappedData.ZipFour2 = address2.zip_four;
+                }
+
+                if (contactData.addresses.length > 2) {
+                    const address3 = contactData.addresses[2];
+                    mappedData.Address3Street1 = address3.line1;
+                    mappedData.Address3Street2 = address3.line2;
+                    mappedData.City3 = address3.locality;
+                    mappedData.State3 = address3.region;
+                    mappedData.PostalCode3 = address3.postal_code;
+                    mappedData.Country3 = address3.country_code;
+                    mappedData.Address3Type = address3.field;
+                    if (address3.zip_four) mappedData.ZipFour3 = address3.zip_four;
+                }
+            }
+
+            const result = await this.xmlRpcCall('ContactService.update', [
+                contactId,
+                mappedData
+            ]);
+
+            return {
+                success: true,
+                result: result,
+                mappedData: mappedData // Para debugging
+            };
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'updateContact');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+
+    async mergeContact(contactId, duplicateContactId) {
+        try {
+            console.log('1 - ', contactId)
+            console.log('2 - ', duplicateContactId)
+
+            const result = await this.xmlRpcCall('ContactService.merge',
+                [
+                    contactId,
+                    duplicateContactId
+                ]
+            )
+            return { sucess: true, result }
+        } catch (error) {
+            const errorInfo = handleError(error, 'updateContact');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+
+    async getLinkedContacts(contactId) {
+        try {
+
+            const result = await this.xmlRpcCall('ContactService.listLinkedContacts',
+                [
+                    contactId
+                ]
+            )
+            console.log('conmt', result)
+            return { sucess: true, result }
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'getLinkedContacts');
+            return {
+                success: false,
+                error: errorInfo
+            };
+
+        }
+
+
+
+    }
+
+    async linkContacts(contactId, contactId2) {
+        try {
+            console.log('ga', contactId)
+            console.log('a', contactId2)
+            const result = await this.xmlRpcCall('ContactService.linkContacts',
+                [
+                    contactId,
+                    contactId2,
+                    2
+                ]
+            )
+
+            return { sucess: true, result }
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'link contacts');
+            return {
+                success: false,
+                error: errorInfo
+            };
+
+        }
+
+
+
+    }
+
+    async unlinkContacts(contactId, contactId2) {
+        try {
+            console.log('ga', contactId)
+            console.log('a', contactId2)
+            const result = await this.xmlRpcCall('ContactService.unlinkContacts',
+                [
+                    contactId,
+                    contactId2,
+                    2
+                ]
+            )
+
+            return { sucess: true, result }
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'link contacts');
+            return {
+                success: false,
+                error: errorInfo
+            };
+
+        }
+
+
+
+    }
+
+    async getUsers(queryParams) {
+        try {
+            const result = await this.xmlRpcCall('DataService.query', [
+                'User',
+                100,
+                0,
+                {
+
+                },
+                ['Id', 'FirstName', 'MiddleName', 'LastName', 'Email']
+
+            ])
+            const users = result.map((item) => ({
+
+                id: item.Id,
+                given_name: item.FirstName,
+                middle_name: item.MiddleName,
+                family_name: item.LastName,
+                email_address: item.Email
+
+            }))
+            console.log('h', result)
+            return {
+                success: true,
+                users: users,
+                count: users.length
+            };
+        } catch (error) {
+            const errorInfo = handleError(error, 'link contacts');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+    async getNotes(queryParams) {
+        try {
+
+            const result = await this.xmlRpcCall('DataService.query', [
+                'ContactAction',
+                queryParams.limit || 100,
+                queryParams.page || 0,
+                {
+                    ObjectType: 'Note'
+                },
+                ['Id', 'ActionDescription', 'CreationNotes', 'ContactId', 'UserID'
+                    , 'LastUpdatedBy', 'LastUpdated', 'CreationDate', 'ActionType']
+            ])
+            const notes = result.map((item) => ({
+
+                id: item.Id,
+                title: item.ActionDescription,
+                body: item.CreationNotes,
+                type: item.ActionType,
+                contact_id: item.ContactId,
+                user_id: item.UserID,
+                last_updated_by: {
+                    user_id: item.UserID,
+                    given_name: item.LastUpdatedBy
+                },
+                date_created: formatToISO(item.CreationDate),
+                last_updated: formatToISO(item.LastUpdated)
+            }))
+            console.log('notes', result)
+            return {
+                success: true,
+                notes: notes,
+                count: notes.length
+            };
+
+
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'getNotes');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async createNote(noteData) {
+        try {
+
+            noteData = cleanParams({
+                ActionDescription: noteData.title,
+                ActionType: noteData.type,
+                CreationNotes: noteData.body,
+                UserID: noteData.user_id,
+                ContactId: noteData.contact_id
+            })
+
+            const result = await this.xmlRpcCall('DataService.add', [
+                'ContactAction',
+                noteData
+            ])
+
+            return {
+                sucess: true,
+                result
+            }
+        } catch (error) {
+            const errorInfo = handleError(error, 'createNote');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async updateNote(noteId, noteData) {
+        try {
+
+            noteData = cleanParams({
+                ActionDescription: noteData.title,
+                ActionType: noteData.type,
+                CreationNotes: noteData.body,
+                UserID: noteData.user_id,
+                ContactId: noteData.contact_id
+            })
+
+
+            const result = await this.xmlRpcCall('DataService.update', [
+                'ContactAction',
+                noteId,
+                noteData
+            ])
+
+            return {
+                sucess: true,
+                result
+            }
+        } catch (error) {
+            const errorInfo = handleError(error, 'createNote');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async deleteNote(noteId) {
+        try {
+
+
+            await this.xmlRpcCall('DataService.delete', [
+                'ContactAction',
+                noteId
+            ])
+
+            return {
+                sucess: true
+            }
+        } catch (error) {
+            const errorInfo = handleError(error, 'createNote');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getTasks(queryParams) {
+        try {
+
+            const result = await this.xmlRpcCall('DataService.query', [
+                'ContactAction',
+                queryParams.limit || 100,
+                queryParams.page || 0,
+                {
+                    ObjectType: 'Task'
+                },
+                ['Id', 'ActionDescription', 'CreationNotes', 'ContactId', 'UserID'
+                    , 'LastUpdatedBy', 'LastUpdated', 'CreationDate', 'ActionType', 'Priority',
+                    'CompletionDate']
+            ])
+            const tasks = result.map((item) => ({
+
+                id: item.Id,
+                title: item.ActionDescription,
+                description: item.CreationNotes,
+                type: item.ActionType,
+                contact: {
+                    first_name: item.ContactId
+                },
+                contact_id: item.ContactId,
+                user_id: item.UserID,
+                last_updated_by: {
+                    user_id: item.UserID,
+                    given_name: item.LastUpdatedBy
+                },
+                creation_date: formatToISO(item.CreationDate),
+                modification_date: formatToISO(item.LastUpdated),
+                priority: item.Priority,
+                completion_date: formatToISO(item?.CompletionDate)
+            }))
+            console.log('tasks', result)
+            return {
+                success: true,
+                tasks: tasks,
+                count: tasks.length
+            };
+
+
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'getTasks');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async createTask(taskData) {
+        try {
+
+            taskData = cleanParams({
+                ActionDescription: taskData.title,
+                ActionType: 'Task',
+                CreationNotes: taskData.description,
+                UserID: taskData.user_id,
+                ContactId: taskData.contact_id,
+                ObjectType: 'Task',
+                IsAppointment: 1
+            })
+
+            const result = await this.xmlRpcCall('DataService.add', [
+                'ContactAction',
+                taskData
+            ])
+
+            return {
+                sucess: true,
+                result
+            }
+        } catch (error) {
+            const errorInfo = handleError(error, 'createTask');
+            return { success: false, error: errorInfo };
+        }
+    }
+    ///////////////////EMAILS ENDPOINTS-------------------------------------------------------------
+    async optInEmail(email, reason) {
+        try {
+           const result =  await this.xmlRpcCall('APIEmailService.optIn', [
+                email,
+                reason
+            ])
+            console.log (result)
+            return { success: true }
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'opt in email');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async optOutEmail(email, reason) {
+        try {
+            await this.xmlRpcCall('APIEmailService.optOut', [
+                email,
+                reason
+            ])
+
+            return { success: true }
+        } catch (error) {
+            const errorInfo = handleError(error, 'opt out email');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getOptInStatus(email) {
+        try {
+            const result = await this.xmlRpcCall('APIEmailService.getOptStatus',[email])
+            return {success:true, result}
+        } catch (error) {
+            const errorInfo = handleError(error, 'opt in email');
+            return { success: false, error: errorInfo };
+        }
+    }
 }
 
 const keapAPI = new KeapAPI();

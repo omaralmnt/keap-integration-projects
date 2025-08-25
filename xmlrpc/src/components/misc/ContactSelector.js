@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '../ui/Button';
 import { Search, User, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import keapAPI from '../../services/keapAPI';
@@ -165,7 +165,8 @@ const ContactSelector = ({
   onClose, 
   onSelect, 
   selectedContactIds = [], 
-  mode = 'multiple' // 'single' or 'multiple'
+  mode = 'multiple', // 'single' or 'multiple'
+  excludeContactId = null // Contact ID to exclude from results (useful for merge functionality)
 }) => {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -174,47 +175,60 @@ const ContactSelector = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedContacts, setSelectedContacts] = useState([]);
+  const [previous, setPrevious] = useState('');
+  const [next, setNext] = useState('');
+  
+  // Use refs to prevent infinite loops
+  const isLoadingRef = useRef(false);
+  const lastSearchRef = useRef('');
+  const searchTimeoutRef = useRef(null);
   
   const itemsPerPage = 10;
 
-  // Load contacts
+  // Simplified loadContacts function without useCallback to prevent dependency issues
   const loadContacts = async (page = 1, search = '') => {
+    // Prevent multiple simultaneous calls
+    if (isLoadingRef.current) return;
+    
+    isLoadingRef.current = true;
     setLoading(true);
     setError(null);
     
     try {
       const offset = (page - 1) * itemsPerPage;
+      
       const queryParams = {
         limit: itemsPerPage,
-        offset: offset,
-        order: 'name',
-        order_direction: 'ASCENDING'
+        page: offset,
+        OrderBy: 'FirstName',
+        asc: true,
+        query: {}
       };
 
-      // Add search parameters if provided
+      // Handle search
       if (search.trim()) {
         const searchLower = search.toLowerCase();
-        // Try to determine if it's an email or name search
+        
         if (search.includes('@')) {
-          queryParams.email = search;
-        } else {
-          // Split search term for first/last name
-          const nameParts = search.split(' ');
+          queryParams.query.Email = search;
+        } else if (!/^\d+$/.test(search.trim())) {
+          const nameParts = search.trim().split(/\s+/);
           if (nameParts.length > 0) {
-            queryParams.given_name = nameParts[0];
+            queryParams.query.FirstName = nameParts[0];
           }
           if (nameParts.length > 1) {
-            queryParams.family_name = nameParts.slice(1).join(' ');
+            queryParams.query.LastName = nameParts.slice(1).join(' ');
           }
         }
       }
 
       const response = await keapAPI.getContacts(queryParams);
+      console.log(response);
       
       let filteredContacts = response.contacts || [];
       
-      // Additional client-side filtering for more flexible search
-      if (search.trim() && !search.includes('@')) {
+      // Client-side filtering for more flexible search
+      if (search.trim()) {
         const searchLower = search.toLowerCase();
         filteredContacts = filteredContacts.filter(contact => {
           const fullName = [contact.given_name, contact.middle_name, contact.family_name, contact.preferred_name]
@@ -231,59 +245,143 @@ const ContactSelector = ({
                  contactId.includes(searchLower);
         });
       }
+
+      // Exclude specific contact if provided
+      if (excludeContactId) {
+        filteredContacts = filteredContacts.filter(contact => contact.id !== parseInt(excludeContactId));
+      }
       
       setContacts(filteredContacts);
       setTotalCount(response.count || filteredContacts.length);
+      setPrevious(response.previous || '');
+      setNext(response.next || '');
       
     } catch (err) {
       console.error('Error loading contacts:', err);
       setError('Failed to load contacts. Please try again.');
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
   };
 
-  // Initialize selected contacts from IDs
+  // Handle pagination
+  const handlePagination = async (action) => {
+    if (isLoadingRef.current) return;
+    
+    isLoadingRef.current = true;
+    setLoading(true);
+    setError(null);
+    
+    try {
+      let response;
+      if (action === 'next' && next) {
+        response = await keapAPI.getContactsPaginated(next);
+        setCurrentPage(prev => prev + 1);
+      } else if (action === 'previous' && previous) {
+        response = await keapAPI.getContactsPaginated(previous);
+        setCurrentPage(prev => Math.max(prev - 1, 1));
+      }
+
+      if (response) {
+        let filteredContacts = response.contacts || [];
+        
+        // Apply same filtering logic for paginated results
+        if (searchTerm.trim()) {
+          const searchLower = searchTerm.toLowerCase();
+          filteredContacts = filteredContacts.filter(contact => {
+            const fullName = [contact.given_name, contact.middle_name, contact.family_name, contact.preferred_name]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase();
+            const email = contact.email_addresses?.[0]?.email?.toLowerCase() || '';
+            const company = (contact.company_name || '').toLowerCase();
+            const contactId = contact.id.toString();
+            
+            return fullName.includes(searchLower) ||
+                   email.includes(searchLower) ||
+                   company.includes(searchLower) ||
+                   contactId.includes(searchLower);
+          });
+        }
+
+        // Exclude specific contact if provided
+        if (excludeContactId) {
+          filteredContacts = filteredContacts.filter(contact => contact.id !== parseInt(excludeContactId));
+        }
+
+        setContacts(filteredContacts);
+        setNext(response.next || '');
+        setPrevious(response.previous || '');
+      }
+    } catch (err) {
+      console.error('Error in pagination:', err);
+      setError('Failed to load contacts. Please try again.');
+    } finally {
+      setLoading(false);
+      isLoadingRef.current = false;
+    }
+  };
+
+  // Initialize selected contacts from IDs - only run when modal opens
   useEffect(() => {
     if (isOpen && selectedContactIds.length > 0) {
-      // You might want to fetch full contact details for the selected IDs
-      // For now, we'll just create minimal objects
       const initialSelected = selectedContactIds.map(id => ({ 
         id: parseInt(id), 
         given_name: `Contact`, 
         family_name: id 
       }));
       setSelectedContacts(mode === 'single' ? initialSelected.slice(0, 1) : initialSelected);
+    } else if (isOpen) {
+      setSelectedContacts([]);
     }
-  }, [isOpen, selectedContactIds, mode]);
+  }, [isOpen]); // Only depend on isOpen
 
-  // Load contacts when modal opens
+  // Load contacts when modal opens - simplified
   useEffect(() => {
     if (isOpen) {
-      loadContacts(currentPage, searchTerm);
-    }
-  }, [isOpen, currentPage]);
-
-  // Handle search with debounce
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const timeoutId = setTimeout(() => {
       setCurrentPage(1);
-      loadContacts(1, searchTerm);
-    }, 300);
+      setSearchTerm('');
+      lastSearchRef.current = '';
+      loadContacts(1, '');
+    }
+  }, [isOpen]);
 
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, isOpen]);
+  // Handle search with debounce - completely rewritten to prevent loops
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Set new timeout
+    searchTimeoutRef.current = setTimeout(() => {
+      // Only search if the value has actually changed and we're not already loading
+      if (value !== lastSearchRef.current && !isLoadingRef.current) {
+        lastSearchRef.current = value;
+        setCurrentPage(1);
+        loadContacts(1, value);
+      }
+    }, 300);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handle contact selection toggle
   const handleContactToggle = (contact) => {
     setSelectedContacts(prev => {
       if (mode === 'single') {
-        // In single mode, always replace the selection
         return [contact];
       } else {
-        // In multiple mode, toggle selection
         const isSelected = prev.some(c => c.id === contact.id);
         if (isSelected) {
           return prev.filter(c => c.id !== contact.id);
@@ -309,15 +407,24 @@ const ContactSelector = ({
     onClose();
   };
 
-  // Pagination
-  const totalPages = Math.ceil(totalCount / itemsPerPage);
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalCount);
+  // Reset state when modal closes
+  const handleClose = () => {
+    setSearchTerm('');
+    setCurrentPage(1);
+    setSelectedContacts([]);
+    setContacts([]);
+    setError(null);
+    lastSearchRef.current = '';
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    onClose();
+  };
 
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={handleClose}>
       <div className="bg-white">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -327,13 +434,13 @@ const ContactSelector = ({
             </h3>
             <p className="text-sm text-gray-500">
               {mode === 'single' 
-                ? 'Choose a contact to send the email to' 
-                : 'Choose contacts to send the email to'
+                ? 'Choose a contact' 
+                : 'Choose contacts'
               }
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600"
           >
             <X className="h-6 w-6" />
@@ -357,7 +464,7 @@ const ContactSelector = ({
               type="text"
               placeholder="Search by name, email, company, or ID..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -428,16 +535,16 @@ const ContactSelector = ({
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
             <div className="flex-1 flex justify-between sm:hidden">
               <Button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
+                onClick={() => handlePagination('previous')}
+                disabled={!previous}
                 variant="outline"
                 size="sm"
               >
                 Previous
               </Button>
               <Button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
+                onClick={() => handlePagination('next')}
+                disabled={!next}
                 variant="outline"
                 size="sm"
               >
@@ -447,43 +554,27 @@ const ContactSelector = ({
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{startItem}</span> to{' '}
-                  <span className="font-medium">{endItem}</span> of{' '}
-                  <span className="font-medium">{totalCount}</span> results
+                  Page {currentPage} of results
                 </p>
               </div>
               <div>
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                   <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    onClick={() => handlePagination('previous')}
+                    disabled={!previous}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   
-                  {/* Page numbers */}
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = i + 1;
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          currentPage === pageNum
-                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+                  <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                    {currentPage}
+                  </span>
                   
                   <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    onClick={() => handlePagination('next')}
+                    disabled={!next}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </button>
@@ -506,7 +597,7 @@ const ContactSelector = ({
             }
           </Button>
           <Button
-            onClick={onClose}
+            onClick={handleClose}
             variant="outline"
             className="mt-3 w-full sm:mt-0 sm:w-auto"
           >

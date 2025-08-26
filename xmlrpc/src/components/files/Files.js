@@ -71,8 +71,6 @@ export function Files() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadForm, setUploadForm] = useState({
     file_name: '',
-    is_public: false,
-    file_association: 'USER',
     contact_id: ''
   });
 
@@ -92,12 +90,12 @@ export function Files() {
   const [replaceLoading, setReplaceLoading] = useState(false);
   const [fileToReplace, setFileToReplace] = useState(null);
   const [replaceFile, setReplaceFile] = useState(null);
-  const [replaceForm, setReplaceForm] = useState({
-    file_name: '',
-    is_public: false,
-    file_association: 'USER',
-    contact_id: ''
-  });
+
+  // Rename file modal state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameLoading, setRenameLoading] = useState(false);
+  const [fileToRename, setFileToRename] = useState(null);
+  const [newFileName, setNewFileName] = useState('');
 
   // File type options
   const fileTypes = [
@@ -117,10 +115,16 @@ export function Files() {
       } else {
         data = await keapAPI.getFilesPaginated(previous);
       }
+      
+      // Filter out files that start with 'email-'
+      const filteredFiles = (data.files || []).filter(file => 
+        !file.file_name || !file.file_name.toLowerCase().startsWith('email-')
+      );
+      
       console.log(data);
       setNext(data.next || '');
       setPrevious(data.previous || '');
-      setFiles(data.files || []);
+      setFiles(filteredFiles);
       setCount(data.count || 0);
     } catch (error) {
       console.log('Pagination error:', error);
@@ -145,11 +149,18 @@ export function Files() {
       };
 
       const data = await keapAPI.getFiles(queryParams);
+      
+      // Filter out files that start with 'email-'
+      const filteredFiles = (data.files || []).filter(file => 
+        !file.file_name || !file.file_name.toLowerCase().startsWith('email-')
+      );
+      
       setNext(data.next || '');
       setPrevious(data.previous || '');
-      setFiles(data.files || []);
+      setFiles(filteredFiles);
       setCount(data.count || 0);
       console.log('Files data:', data);
+      console.log('Filtered files (removed email- prefixed):', filteredFiles.length, 'of', (data.files || []).length);
     } catch (error) {
       console.log('Search error:', error);   
     } finally {
@@ -205,8 +216,6 @@ export function Files() {
     setSelectedFile(null);
     setUploadForm({
       file_name: '',
-      is_public: false,
-      file_association: 'USER',
       contact_id: ''
     });
   };
@@ -216,8 +225,6 @@ export function Files() {
     setSelectedFile(null);
     setUploadForm({
       file_name: '',
-      is_public: false,
-      file_association: 'USER',
       contact_id: ''
     });
   };
@@ -268,19 +275,12 @@ export function Files() {
       // Convert file to base64
       const fileData = await convertFileToBase64(selectedFile);
       
-      // Prepare the payload
+      // Prepare the payload according to your API expectation
       const payload = {
+        contact_id: uploadForm.contact_id ? parseInt(uploadForm.contact_id) : null,
         file_name: uploadForm.file_name,
-        public: uploadForm.is_public, // Note: API expects 'public', not 'is_public'
-        file_data: fileData,
-        is_public: uploadForm.is_public,
-        file_association: uploadForm.file_association
+        file: fileData
       };
-
-      // Add contact_id only if file_association is CONTACT
-      if (uploadForm.file_association === 'CONTACT' && uploadForm.contact_id) {
-        payload.contact_id = parseInt(uploadForm.contact_id);
-      }
 
       console.log('Uploading file:', payload);
       const response = await keapAPI.uploadFile(payload);
@@ -303,11 +303,6 @@ export function Files() {
       return false;
     }
     
-    // If association is CONTACT, contact_id is required
-    if (uploadForm.file_association === 'CONTACT' && !uploadForm.contact_id.trim()) {
-      return false;
-    }
-    
     return true;
   };
 
@@ -319,9 +314,16 @@ export function Files() {
     setFileDetails(null);
     
     try {
-      const details = await keapAPI.getFileById(file.id);
-      setFileDetails(details);
-      console.log('File details:', details);
+      const result = await keapAPI.getFileById(file.id);
+      if (result.success) {
+        setFileDetails({
+          file: result.file,
+          download_url: result.download_url
+        });
+        console.log('File details:', result);
+      } else {
+        setFileDetails({ error: 'Failed to load file details' });
+      }
     } catch (error) {
       console.log('Error fetching file details:', error);
       setFileDetails({ error: 'Failed to load file details' });
@@ -389,43 +391,19 @@ export function Files() {
     setFileToReplace(file);
     setShowReplaceModal(true);
     setReplaceFile(null);
-    setReplaceForm({
-      file_name: file.file_name || '',
-      is_public: file.public || false,
-      file_association: 'USER', // Default, user can change
-      contact_id: file.contact_id ? file.contact_id.toString() : ''
-    });
   };
 
   const closeReplaceModal = () => {
     setShowReplaceModal(false);
     setFileToReplace(null);
     setReplaceFile(null);
-    setReplaceForm({
-      file_name: '',
-      is_public: false,
-      file_association: 'USER',
-      contact_id: ''
-    });
   };
 
   const handleReplaceFileSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
       setReplaceFile(file);
-      // Auto-fill the file name with new file name if user wants
-      setReplaceForm(prev => ({
-        ...prev,
-        file_name: file.name
-      }));
     }
-  };
-
-  const updateReplaceForm = (field, value) => {
-    setReplaceForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
   };
 
   const handleReplaceSubmit = async () => {
@@ -440,22 +418,8 @@ export function Files() {
       // Convert file to base64
       const fileData = await convertFileToBase64(replaceFile);
       
-      // Prepare the payload
-      const payload = {
-        file_name: replaceForm.file_name,
-        public: replaceForm.is_public,
-        file_data: fileData,
-        is_public: replaceForm.is_public,
-        file_association: replaceForm.file_association
-      };
-
-      // Add contact_id only if file_association is CONTACT
-      if (replaceForm.file_association === 'CONTACT' && replaceForm.contact_id) {
-        payload.contact_id = parseInt(replaceForm.contact_id);
-      }
-
-      console.log('Replacing file:', fileToReplace.id, payload);
-      const response = await keapAPI.replaceFile(fileToReplace.id, payload);
+      console.log('Replacing file:', fileToReplace.id, fileData.substring(0, 50) + '...');
+      const response = await keapAPI.replaceFile(fileToReplace.id, fileData);
       console.log('File replaced successfully:', response);
       
       // Close modal and refresh files list
@@ -470,17 +434,42 @@ export function Files() {
     }
   };
 
-  const isReplaceFormValid = () => {
-    if (!replaceFile || !replaceForm.file_name.trim()) {
-      return false;
+  // Rename file functions
+  const openRenameModal = (file) => {
+    setFileToRename(file);
+    setNewFileName(file.file_name || '');
+    setShowRenameModal(true);
+  };
+
+  const closeRenameModal = () => {
+    setShowRenameModal(false);
+    setFileToRename(null);
+    setNewFileName('');
+  };
+
+  const handleRenameSubmit = async () => {
+    if (!fileToRename || !newFileName.trim()) {
+      alert('Please enter a valid file name');
+      return;
     }
-    
-    // If association is CONTACT, contact_id is required
-    if (replaceForm.file_association === 'CONTACT' && !replaceForm.contact_id.trim()) {
-      return false;
+
+    try {
+      setRenameLoading(true);
+      
+      console.log('Renaming file:', fileToRename.id, 'to:', newFileName);
+      const response = await keapAPI.renameFile(fileToRename.id, newFileName);
+      console.log('File renamed successfully:', response);
+      
+      // Close modal and refresh files list
+      closeRenameModal();
+      handleSearch();
+      
+    } catch (error) {
+      console.log('Rename error:', error);
+      alert('Failed to rename file. Please try again.');
+    } finally {
+      setRenameLoading(false);
     }
-    
-    return true;
   };
 
   return (
@@ -675,8 +664,16 @@ export function Files() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => openReplaceModal(file)}
+                          onClick={() => openRenameModal(file)}
                           className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        >
+                          Rename
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openReplaceModal(file)}
+                          className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
                         >
                           Replace
                         </Button>
@@ -780,58 +777,27 @@ export function Files() {
                   />
                 </div>
 
-                {/* File Association */}
+                {/* Contact ID - Optional */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    File Association <span className="text-red-500">*</span>
+                    Contact ID (Optional)
                   </label>
-                  <Select
-                    value={uploadForm.file_association}
-                    onChange={(e) => updateUploadForm('file_association', e.target.value)}
-                    required
-                  >
-                    <option value="USER">User</option>
-                    <option value="COMPANY">Company</option>
-                    <option value="CONTACT">Contact</option>
-                  </Select>
-                </div>
-
-                {/* Contact ID - Only show if file_association is CONTACT */}
-                {uploadForm.file_association === 'CONTACT' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contact ID <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                      type="number"
-                      value={uploadForm.contact_id}
-                      onChange={(e) => updateUploadForm('contact_id', e.target.value)}
-                      placeholder="Enter contact ID"
-                      min="1"
-                      required
-                    />
-                  </div>
-                )}
-
-                {/* Public/Private Toggle */}
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="is_public"
-                    checked={uploadForm.is_public}
-                    onChange={(e) => updateUploadForm('is_public', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  <Input
+                    type="number"
+                    value={uploadForm.contact_id}
+                    onChange={(e) => updateUploadForm('contact_id', e.target.value)}
+                    placeholder="Enter contact ID to associate file with contact"
+                    min="1"
                   />
-                  <label htmlFor="is_public" className="ml-2 block text-sm font-medium text-gray-700">
-                    Make file public
-                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave empty to upload file without contact association
+                  </p>
                 </div>
 
-                {/* Info about public files */}
+                {/* Info about file upload */}
                 <div className="bg-blue-50 p-3 rounded-md">
                   <p className="text-xs text-blue-800">
-                    <strong>Public files</strong> can be accessed by anyone with the link. 
-                    <strong> Private files</strong> require authentication to access.
+                    Files will be uploaded to your Keap account. If you specify a contact ID, the file will be associated with that contact.
                   </p>
                 </div>
 
@@ -857,7 +823,7 @@ export function Files() {
         </div>
       )}
 
-      {/* File Details Modal */}
+      {/* File Details Modal - Updated for new API response */}
       {showDetailsModal && selectedFileForDetails && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
           <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -901,13 +867,13 @@ export function Files() {
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide">File Name</h4>
                         <p className="mt-1 text-lg font-medium text-gray-900 break-all">
-                          {fileDetails.file_descriptor.file_name}
+                          {selectedFileForDetails.file_name}
                         </p>
                       </div>
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide">File ID</h4>
                         <p className="mt-1 text-lg font-medium text-gray-900">
-                          {fileDetails.file_descriptor.id}
+                          {selectedFileForDetails.id}
                         </p>
                       </div>
                     </div>
@@ -919,29 +885,29 @@ export function Files() {
                     <div className="space-y-4">
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Type</h4>
-                        <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getFileTypeColor(fileDetails.file_descriptor.file_box_type)}`}>
-                          {fileDetails.file_descriptor.file_box_type}
+                        <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getFileTypeColor(selectedFileForDetails.file_box_type)}`}>
+                          {selectedFileForDetails.file_box_type}
                         </span>
                       </div>
 
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Category</h4>
-                        <p className="text-gray-900">{fileDetails.file_descriptor.category || 'N/A'}</p>
+                        <p className="text-gray-900">{selectedFileForDetails.category || 'N/A'}</p>
                       </div>
 
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">File Size</h4>
-                        <p className="text-gray-900">{formatFileSize(fileDetails.file_descriptor.file_size)}</p>
+                        <p className="text-gray-900">{formatFileSize(selectedFileForDetails.file_size)}</p>
                       </div>
 
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Visibility</h4>
                         <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
-                          fileDetails.file_descriptor.public 
+                          selectedFileForDetails.public 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {fileDetails.file_descriptor.public ? 'Public' : 'Private'}
+                          {selectedFileForDetails.public ? 'Public' : 'Private'}
                         </span>
                       </div>
                     </div>
@@ -950,48 +916,36 @@ export function Files() {
                     <div className="space-y-4">
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Contact ID</h4>
-                        <p className="text-gray-900">{fileDetails.file_descriptor.contact_id || 'N/A'}</p>
+                        <p className="text-gray-900">{selectedFileForDetails.contact_id || 'N/A'}</p>
                       </div>
 
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Created By</h4>
-                        <p className="text-gray-900">{fileDetails.file_descriptor.created_by || 'N/A'}</p>
+                        <p className="text-gray-900">{selectedFileForDetails.created_by || 'N/A'}</p>
                       </div>
 
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Date Created</h4>
-                        <p className="text-gray-900">{formatDate(fileDetails.file_descriptor.date_created)}</p>
+                        <p className="text-gray-900">{formatDate(selectedFileForDetails.date_created)}</p>
                       </div>
 
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Last Updated</h4>
-                        <p className="text-gray-900">{formatDate(fileDetails.file_descriptor.last_updated)}</p>
+                        <p className="text-gray-900">{formatDate(selectedFileForDetails.last_updated)}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Remote File Key */}
-                  {fileDetails.file_descriptor.remote_file_key && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Remote File Key</h4>
-                      <div className="bg-gray-50 rounded-md p-3">
-                        <code className="text-sm text-gray-800 break-all">
-                          {fileDetails.file_descriptor.remote_file_key}
-                        </code>
-                      </div>
-                    </div>
-                  )}
-
                   {/* File Data Preview */}
-                  {fileDetails.file_data && (
+                  {fileDetails.file && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">File Data</h4>
                       <div className="bg-gray-50 rounded-md p-3 max-h-32 overflow-y-auto">
-                        {fileDetails.file_descriptor.file_box_type === 'Image' ? (
+                        {selectedFileForDetails.file_box_type === 'Image' ? (
                           <div className="text-center">
                             <img 
-                              src={`data:image/*;base64,${fileDetails.file_data}`}
-                              alt={fileDetails.file_descriptor.file_name}
+                              src={`data:image/*;base64,${fileDetails.file}`}
+                              alt={selectedFileForDetails.file_name}
                               className="max-w-full max-h-24 mx-auto rounded"
                               onError={(e) => {
                                 e.target.style.display = 'none';
@@ -1004,9 +958,9 @@ export function Files() {
                           </div>
                         ) : (
                           <div className="text-sm text-gray-600">
-                            <p>Base64 encoded file data available ({fileDetails.file_data.length} characters)</p>
+                            <p>Base64 encoded file data available ({fileDetails.file.length} characters)</p>
                             <p className="text-xs text-gray-500 mt-1">
-                              Preview: {fileDetails.file_data.substring(0, 100)}...
+                              Preview: {fileDetails.file.substring(0, 100)}...
                             </p>
                           </div>
                         )}
@@ -1017,10 +971,10 @@ export function Files() {
                   {/* Action Buttons */}
                   <div className="flex justify-between items-center pt-4 border-t">
                     <div className="flex space-x-3">
-                      {fileDetails.file_descriptor.download_url && (
+                      {fileDetails.download_url && (
                         <Button
                           variant="outline"
-                          onClick={() => window.open(fileDetails.file_descriptor.download_url, '_blank')}
+                          onClick={() => window.open(fileDetails.download_url, '_blank')}
                           className="flex items-center"
                         >
                           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1030,13 +984,13 @@ export function Files() {
                         </Button>
                       )}
                       
-                      {fileDetails.file_data && (
+                      {fileDetails.file && (
                         <Button
                           variant="outline"
                           onClick={() => {
                             const link = document.createElement('a');
-                            link.href = `data:application/octet-stream;base64,${fileDetails.file_data}`;
-                            link.download = fileDetails.file_descriptor.file_name;
+                            link.href = `data:application/octet-stream;base64,${fileDetails.file}`;
+                            link.download = selectedFileForDetails.file_name;
                             link.click();
                           }}
                           className="flex items-center"
@@ -1070,7 +1024,7 @@ export function Files() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-gray-900 flex items-center">
-                  <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
                   Replace File
@@ -1110,76 +1064,16 @@ export function Files() {
                   <input
                     type="file"
                     onChange={handleReplaceFileSelect}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
                     required
                   />
                   {replaceFile && (
-                    <div className="mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
-                      <p className="text-xs text-blue-800">
+                    <div className="mt-2 p-2 bg-green-50 rounded-md border border-green-200">
+                      <p className="text-xs text-green-800">
                         New file: {replaceFile.name} ({(replaceFile.size / 1024).toFixed(1)} KB)
                       </p>
                     </div>
                   )}
-                </div>
-
-                {/* File Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    File Name <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={replaceForm.file_name}
-                    onChange={(e) => updateReplaceForm('file_name', e.target.value)}
-                    placeholder="Enter file name"
-                    required
-                  />
-                </div>
-
-                {/* File Association */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    File Association <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    value={replaceForm.file_association}
-                    onChange={(e) => updateReplaceForm('file_association', e.target.value)}
-                    required
-                  >
-                    <option value="USER">User</option>
-                    <option value="COMPANY">Company</option>
-                    <option value="CONTACT">Contact</option>
-                  </Select>
-                </div>
-
-                {/* Contact ID - Only show if file_association is CONTACT */}
-                {replaceForm.file_association === 'CONTACT' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contact ID <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                      type="number"
-                      value={replaceForm.contact_id}
-                      onChange={(e) => updateReplaceForm('contact_id', e.target.value)}
-                      placeholder="Enter contact ID"
-                      min="1"
-                      required
-                    />
-                  </div>
-                )}
-
-                {/* Public/Private Toggle */}
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="replace_is_public"
-                    checked={replaceForm.is_public}
-                    onChange={(e) => updateReplaceForm('is_public', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="replace_is_public" className="ml-2 block text-sm font-medium text-gray-700">
-                    Make file public
-                  </label>
                 </div>
 
                 {/* Warning about replacement */}
@@ -1191,7 +1085,7 @@ export function Files() {
                     <div>
                       <h4 className="text-yellow-800 font-medium text-sm">Replace Warning</h4>
                       <p className="text-yellow-700 text-xs mt-1">
-                        This will permanently replace the existing file content. The original file data will be lost and cannot be recovered.
+                        This will permanently replace the existing file content. The original file data will be lost and cannot be recovered. The file name and other properties will remain the same.
                       </p>
                     </div>
                   </div>
@@ -1208,8 +1102,8 @@ export function Files() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={replaceLoading || !isReplaceFormValid()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={replaceLoading || !replaceFile}
+                    className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     {replaceLoading ? (
                       <div className="flex items-center">
@@ -1218,6 +1112,114 @@ export function Files() {
                       </div>
                     ) : (
                       'Replace File'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rename File Modal */}
+      {showRenameModal && fileToRename && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Rename File
+                </h3>
+                <button
+                  onClick={closeRenameModal}
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                  disabled={renameLoading}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Current File Info */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h4 className="text-sm font-medium text-gray-900 mb-2">File to rename:</h4>
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">{getFileIcon(fileToRename.file_box_type)}</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 break-all">
+                      {fileToRename.file_name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      ID: {fileToRename.id} • {fileToRename.file_box_type} • {formatFileSize(fileToRename.file_size)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleRenameSubmit(); }} className="space-y-6">
+                {/* New File Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    New File Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={newFileName}
+                    onChange={(e) => setNewFileName(e.target.value)}
+                    placeholder="Enter new file name"
+                    className="focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    The file extension should match the original file type for proper functionality.
+                  </p>
+                </div>
+
+                {/* Info about renaming */}
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <div className="flex">
+                    <svg className="w-5 h-5 text-blue-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <h4 className="text-blue-800 font-medium text-sm">Rename Information</h4>
+                      <p className="text-blue-700 text-xs mt-1">
+                        Only the file name will be changed. The file content, type, and other properties will remain the same.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modal Actions */}
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={closeRenameModal}
+                    disabled={renameLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={renameLoading || !newFileName.trim()}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {renameLoading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                        Renaming...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        Rename File
+                      </div>
                     )}
                   </Button>
                 </div>

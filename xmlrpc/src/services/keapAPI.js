@@ -1434,7 +1434,7 @@ class KeapAPI {
         }
     }
 
-        async updateEmailTemplate(templateData) {
+    async updateEmailTemplate(templateData) {
         try {
             console.log('templatedata ', templateData)
             const result = await this.xmlRpcCall('APIEmailService.updateEmailTemplate', [
@@ -1461,7 +1461,7 @@ class KeapAPI {
         }
     }
 
-    async sendEmailTemplate(contactList,templateId) {
+    async sendEmailTemplate(contactList, templateId) {
         try {
             // console.log('templatedata ', con)
             const result = await this.xmlRpcCall('APIEmailService.sendEmail', [
@@ -1477,6 +1477,121 @@ class KeapAPI {
         }
     }
 
+
+
+    //FILES ENDPOINTS-------------------------------------------------------------**********/
+    async getFiles(queryParams) {
+        try {
+            // queryParams.query = cleanParams(queryParams.query)
+            console.log('he', queryParams)
+            const result = await this.xmlRpcCall('DataService.query', [
+                'FileBox',      // table
+                queryParams.limit,          // limit
+                queryParams.offset,           // page
+                {},      // queryData
+                ['ContactId', 'FileName', 'Extension', 'FileSize', 'Public', 'Id'],          // selectedFields
+                // queryParams.OrderBy,//Field to order by
+                // true//ASCENDING OR DESCENDING (true = asc)
+            ]);
+            console.log(result)
+            return {
+                success: true, files: result.map(f => ({
+                    id: f.Id,
+                    file_name: f.FileName,
+                    file_size: f.FileSize,
+                    public: f.Public,
+                    contact_id: f.ContactId
+                }))
+            };
+        } catch (error) {
+            console.error('Error in getFiles:', error.message);
+            const errorInfo = handleError(error, 'Get files');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getFileById(fileId) {
+        try {
+            // queryParams.query = cleanParams(queryParams.query)
+            const resultFile = await this.xmlRpcCall('FileService.getFile', [
+                fileId
+            ]); //this returns the fileitself
+
+            const resultDownloadUrl = await this.xmlRpcCall('FileService.getDownloadUrl', [
+                fileId
+            ]);
+            console.log(resultFile)
+            return {
+                success: true,
+                file: resultFile,
+                download_url: resultDownloadUrl
+            };
+        } catch (error) {
+            console.error('Error in getFileById:', error.message);
+            const errorInfo = handleError(error, 'Get file by id');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async renameFile(fileId, newName) {
+        try {
+            // queryParams.query = cleanParams(queryParams.query)
+            const resultFile = await this.xmlRpcCall('FileService.renameFile', [
+                fileId,
+                newName
+            ]); //this returns the fileitself
+
+            return {
+                success: true,
+                result: resultFile,
+            };
+        } catch (error) {
+            console.error('Error in getFileById:', error.message);
+            const errorInfo = handleError(error, 'rename file');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async replaceFile(fileId, fileData) {
+        try {
+            // queryParams.query = cleanParams(queryParams.query)
+            const resultFile = await this.xmlRpcCall('FileService.replaceFile', [
+                fileId,
+                fileData
+            ]); //this returns the fileitself
+
+            return {
+                success: true,
+                result: resultFile,
+            };
+        } catch (error) {
+            console.error('Error in getFileById:', error.message);
+            const errorInfo = handleError(error, 'rename file');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async uploadFile(fileData) {
+        try {
+
+            console.log('file',fileData)
+            // queryParams.query = cleanParams(queryParams.query)
+            const resultFile = await this.xmlRpcCall('FileService.uploadFile', [
+                fileData.contact_id,
+                fileData.file_name,
+                fileData.file
+            ]); 
+            console.log('uploadfile' ,resultFile)
+            return {
+                success: true,
+                result: resultFile,
+            };
+        } catch (error) {
+            console.error('Error in getFileById:', error.message);
+            const errorInfo = handleError(error, 'rename file');
+            return { success: false, error: errorInfo };
+        }
+    }
 }
 
 

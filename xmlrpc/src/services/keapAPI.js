@@ -759,7 +759,33 @@ class KeapAPI {
             return { success: false, error: errorInfo };
         }
     }
+    async emailCreateEmailRecord(contactId, emailData) {
+        try {
+            const data = [
+                contactId,
+                emailData.sent_from_address,
+                emailData.sent_from_address,
+                emailData.sent_to_address,
+                emailData.sent_to_cc_addresses,
+                emailData.sent_to_bcc_addresses,
+                'Multipart',
+                emailData.subject,
+                emailData.html_content,
+                emailData.plain_content,
+                emailData.headers,
+                emailData.received_date,
+                emailData.sent_date,
+                1
 
+            ]
+            // console.log('h', data)
+            const result = await this.xmlRpcCall('APIEmailService.attachEmail', data)
+            return { success: true, result }
+        } catch (error) {
+            const errorInfo = handleError(error, 'GesEmailsByContactId')
+            return { success: false, error: errorInfo };
+        }
+    }
     async getCreditCardsByContactId(contactId) {
         try {
             const result = await this.xmlRpcCall('DataService.query', [
@@ -1350,7 +1376,7 @@ class KeapAPI {
     async sendEmail(emailData) {
         try {
             console.log(emailData)
-            const result = await this.xmlRpcCall('APIEmailService.sendEmail',[
+            const result = await this.xmlRpcCall('APIEmailService.sendEmail', [
                 emailData.contacts,
                 emailData.from_address,
                 '~Contact.Email~',
@@ -1361,17 +1387,98 @@ class KeapAPI {
                 emailData.html_content,
                 emailData.plain_content
 
-
-
-
             ])
-            return {success: true, result}
+            return { success: true, result }
         } catch (error) {
             const errorInfo = handleError(error, 'send email');
             return { success: false, error: errorInfo };
         }
     }
+    async getEmailTemplate(templateId) {
+        try {
+
+            const result = await this.xmlRpcCall('APIEmailService.getEmailTemplate', [
+                templateId
+            ])
+            console.log('template', result)
+            return { sucess: true, result }
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'get Email Template');
+            return { success: false, error: errorInfo };
+        }
+    }
+    async createEmailTemplate(templateData) {
+        try {
+            console.log('templatedata ', templateData)
+            const result = await this.xmlRpcCall('APIEmailService.addEmailTemplate', [
+                templateData.title,
+                templateData.categories,
+                templateData.fromAddress,
+                templateData.toAddress,
+                templateData.ccAddresses,
+                templateData.bccAddresses,
+                templateData.subject,
+                templateData.textBody,
+                templateData.htmlBody,
+                templateData.contentType,
+                templateData.mergeContext
+
+            ])
+            console.log('template', result)
+            return { sucess: true, result }
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'get Email Template');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+        async updateEmailTemplate(templateData) {
+        try {
+            console.log('templatedata ', templateData)
+            const result = await this.xmlRpcCall('APIEmailService.updateEmailTemplate', [
+                templateData.templateId,
+                templateData.title,
+                templateData.categories,
+                templateData.fromAddress,
+                templateData.toAddress,
+                templateData.ccAddresses,
+                templateData.bccAddresses,
+                templateData.subject,
+                templateData.textBody,
+                templateData.htmlBody,
+                templateData.contentType,
+                templateData.mergeContext
+
+            ])
+            console.log('template', result)
+            return { sucess: true, result }
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'get Email Template');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async sendEmailTemplate(contactList,templateId) {
+        try {
+            // console.log('templatedata ', con)
+            const result = await this.xmlRpcCall('APIEmailService.sendEmail', [
+                contactList,
+                templateId
+            ])
+            console.log('template', result)
+            return { sucess: true, result }
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'get Email Template');
+            return { success: false, error: errorInfo };
+        }
+    }
+
 }
+
 
 const keapAPI = new KeapAPI();
 export default keapAPI;

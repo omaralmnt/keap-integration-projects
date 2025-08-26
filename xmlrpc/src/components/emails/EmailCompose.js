@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Button } from '../ui/Button';
 import keapAPI from '../../services/keapAPI';
-import { Mail, Send, ArrowLeft, Eye, Upload } from 'lucide-react';
+import { Mail, Send, ArrowLeft, Eye, FileText, BookImage, Plus, Edit } from 'lucide-react';
 import { toast } from 'react-toastify';
 // Import subcomponents (these should be separate files in your project)
 import SendEmailTab from './SendEmailTab';
-import CreateRecordTab from './CreateRecordTab';  
-import BatchRecordsTab from './BatchRecordsTab';
+import CreateRecordTab from './CreateRecordTab';
+import CreateTemplateTab from './CreateTemplateTab'; // Updated to support both create and update
+import SendTemplateTab from './SendTemplateTab';
 
 // Shared Components
 const Input = ({ 
@@ -149,14 +150,48 @@ const PreviewModal = ({ isOpen, onClose, data, type }) => {
                   <div><strong>Provider:</strong> {data.original_provider}</div>
                 </div>
               )}
-              {type === 'Batch Records' && (
-                <div>
-                  <div className="mb-3"><strong>Total Records:</strong> {data.emails?.length}</div>
-                  {data.emails?.map((email, idx) => (
-                    <div key={idx} className="border-b pb-2 mb-2 text-sm">
-                      <div><strong>#{idx + 1}:</strong> {email.sent_to_address} - {email.subject}</div>
+              {(type === 'Create Template' || type === 'Update Template') && (
+                <div className="space-y-2 text-sm">
+                  {type === 'Update Template' && (
+                    <div><strong>Template ID:</strong> {data.templateId}</div>
+                  )}
+                  <div><strong>Title:</strong> {data.title}</div>
+                  <div><strong>Categories:</strong> {data.categories}</div>
+                  <div><strong>From:</strong> {data.fromAddress}</div>
+                  <div><strong>To:</strong> {data.toAddress}</div>
+                  <div><strong>Subject:</strong> {data.subject}</div>
+                  <div><strong>Content Type:</strong> {data.contentType}</div>
+                  <div><strong>Merge Context:</strong> {data.mergeContext}</div>
+                  {data.htmlBody && (
+                    <div className="mt-4">
+                      <strong>HTML Body Preview:</strong>
+                      <div className="border rounded mt-2">
+                        <iframe
+                          srcDoc={data.htmlBody}
+                          className="w-full h-32"
+                          title="HTML Preview"
+                          sandbox="allow-same-origin"
+                        />
+                      </div>
                     </div>
-                  ))}
+                  )}
+                  {data.textBody && (
+                    <div className="mt-4">
+                      <strong>Text Body:</strong>
+                      <div className="bg-gray-50 p-2 rounded text-xs mt-1 max-h-24 overflow-y-auto">
+                        {data.textBody}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {type === 'Send from Template' && (
+                <div className="space-y-2 text-sm">
+                  <div><strong>Template ID:</strong> {data.templateId}</div>
+                  <div><strong>Template Name:</strong> {data.selectedTemplate?.pieceTitle}</div>
+                  <div><strong>Subject:</strong> {data.selectedTemplate?.subject}</div>
+                  <div><strong>Recipients:</strong> {data.contactList?.length} contact{data.contactList?.length !== 1 ? 's' : ''}</div>
+                  <div><strong>Contact IDs:</strong> {data.contactList?.join(', ')}</div>
                 </div>
               )}
             </div>
@@ -179,14 +214,10 @@ const PreviewModal = ({ isOpen, onClose, data, type }) => {
 export { Input, Textarea, Select };
 
 // Main EmailCompose Component
-export function EmailCompose({ onBack }) {
+export function EmailCompose({ onBack, keapApi }) {
   const [activeTab, setActiveTab] = useState('send');
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-
-  // Import subcomponents dynamically or use lazy loading
-  // For now, we'll use a simple conditional rendering approach
-  // (These imports are now at the top of the file)
 
   // Tab data states - passed to subcomponents
   const [sendEmailData, setSendEmailData] = useState({
@@ -219,31 +250,25 @@ export function EmailCompose({ onBack }) {
     clicked_date: ''
   });
 
-  const [batchData, setBatchData] = useState({
-    globalSubject: '',
-    globalHtmlContent: '',
-    globalPlainContent: '',
-    globalFromAddress: '',
-    globalProvider: 'UNKNOWN',
-    emails: [{
-      sent_to_address: '',
-      subject: '',
-      sent_from_address: '',
-      sent_from_reply_address: '',
-      sent_to_cc_addresses: '',
-      sent_to_bcc_addresses: '',
-      html_content: '',
-      plain_content: '',
-      contact_id: '',
-      original_provider: 'UNKNOWN',
-      original_provider_id: '',
-      provider_source_id: '',
-      headers: '',
-      sent_date: new Date().toISOString(),
-      received_date: '',
-      opened_date: '',
-      clicked_date: ''
-    }]
+  const [templateData, setTemplateData] = useState({
+    templateId: '', // Added for update mode
+    title: '',
+    categories: '',
+    fromAddress: '',
+    toAddress: '~Contact.Email~',
+    ccAddresses: '',
+    bccAddresses: '',
+    subject: '',
+    textBody: '',
+    htmlBody: '',
+    contentType: 'HTML',
+    mergeContext: 'Contact'
+  });
+
+  const [sendTemplateData, setSendTemplateData] = useState({
+    templateId: '',
+    contactList: [],
+    selectedTemplate: null
   });
 
   // Helper Functions
@@ -283,25 +308,15 @@ export function EmailCompose({ onBack }) {
           plain_content: recordData.plain_content ? encodeToBase64(recordData.plain_content) : '',
           contact_id: recordData.contact_id ? parseInt(recordData.contact_id) : undefined
         };
-      case 'batch':
+      case 'create-template':
+        return templateData;
+      case 'update-template':
+        return templateData;
+      case 'send-template':
         return {
-          emails: batchData.emails.map(email => ({
-            ...email,
-            html_content: email.html_content ? encodeToBase64(email.html_content) : '',
-            plain_content: email.plain_content ? encodeToBase64(email.plain_content) : '',
-            contact_id: email.contact_id ? parseInt(email.contact_id) : undefined,
-            sent_date: email.sent_date ? formatDateForAPI(email.sent_date) : undefined,
-            received_date: email.received_date ? formatDateForAPI(email.received_date) : undefined,
-            opened_date: email.opened_date ? formatDateForAPI(email.opened_date) : undefined,
-            clicked_date: email.clicked_date ? formatDateForAPI(email.clicked_date) : undefined
-          })).map(email => {
-            Object.keys(email).forEach(key => {
-              if (email[key] === '' || email[key] === null || email[key] === undefined) {
-                delete email[key];
-              }
-            });
-            return email;
-          })
+          ...sendTemplateData,
+          contactList: Array.isArray(sendTemplateData.contactList) ? sendTemplateData.contactList : 
+                       sendTemplateData.contactList.toString().split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
         };
       default:
         return {};
@@ -312,7 +327,9 @@ export function EmailCompose({ onBack }) {
     switch (activeTab) {
       case 'send': return 'Send Email';
       case 'record': return 'Create Record';
-      case 'batch': return 'Batch Records';
+      case 'create-template': return 'Create Template';
+      case 'update-template': return 'Update Template';
+      case 'send-template': return 'Send from Template';
       default: return '';
     }
   };
@@ -328,14 +345,13 @@ export function EmailCompose({ onBack }) {
       switch (activeTab) {
         case 'send':
           const sendData = getPreviewData();
-          if (!sendData.subject  || !sendData.contacts.length) {
+          if (!sendData.subject || !sendData.contacts.length) {
             toast.error('Subject, User ID, and Contacts are required for sending email');
             return;
           }
-        //   console.log(send)
           result = await keapAPI.sendEmail(sendData);
-          console.log(result)
-          toast.success('Email sent successfuly')
+          console.log(result);
+          toast.success('Email sent successfully');
           break;
           
         case 'record':
@@ -344,29 +360,43 @@ export function EmailCompose({ onBack }) {
             toast.error('To address is required');
             return;
           }
-          result = await keapAPI.emailCreateEmailRecord(recordDataForAPI);
+          result = await keapAPI.emailCreateEmailRecord(recordData.contact_id, recordDataForAPI);
           toast.success('Email record created successfully!');
           break;
-          
-        case 'batch':
-          const batchDataForAPI = getPreviewData();
-          if (batchDataForAPI.emails.some(email => !email.sent_to_address)) {
-            toast.error('All email records must have a To address');
+
+        case 'create-template':
+          const createTemplateDataForAPI = getPreviewData();
+          if (!createTemplateDataForAPI.title || !createTemplateDataForAPI.subject) {
+            toast.error('Title and Subject are required for creating template');
             return;
           }
-          result = await keapAPI.createEmailRecordsBatch(batchDataForAPI);
-          if (result.error) {
-            toast.error('Error creating set of records')
-          }else{
-          toast.success('Batch email records created successfully!');
-
-          }
+          result = await keapAPI.createEmailTemplate(createTemplateDataForAPI);
+          toast.success(`Template created successfully! Template ID: ${result}`);
           break;
-          default: 
-          break
+
+        case 'update-template':
+          const updateTemplateDataForAPI = getPreviewData();
+          if (!updateTemplateDataForAPI.templateId || !updateTemplateDataForAPI.title || !updateTemplateDataForAPI.subject) {
+            toast.error('Template ID, Title, and Subject are required for updating template');
+            return;
+          }
+          result = await keapAPI.updateEmailTemplate(updateTemplateDataForAPI);
+          toast.success(`Template updated successfully! Template ID: ${result}`);
+          break;
+
+        case 'send-template':
+          const sendTemplateDataForAPI = getPreviewData();
+          if (!sendTemplateDataForAPI.templateId || !sendTemplateDataForAPI.contactList.length) {
+            toast.error('Template ID and Contacts are required for sending template');
+            return;
+          }
+          result = await keapAPI.sendEmailTemplate(sendTemplateDataForAPI.contactList, sendTemplateDataForAPI.templateId);
+          toast.success('Template email sent successfully!');
+          break;
+          
+        default: 
+          break;
       }
-      
-  
       
       if (onBack) {
         onBack();
@@ -374,7 +404,14 @@ export function EmailCompose({ onBack }) {
       
     } catch (error) {
       console.error('Error:', error);
-      alert(`Failed to ${activeTab === 'send' ? 'send email' : 'create records'}. Please try again.`);
+      const actionMap = {
+        'send': 'send email',
+        'record': 'create record',
+        'create-template': 'create template',
+        'update-template': 'update template',
+        'send-template': 'send template'
+      };
+      toast.error(`Failed to ${actionMap[activeTab] || 'perform action'}. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -383,7 +420,9 @@ export function EmailCompose({ onBack }) {
   const tabs = [
     { id: 'send', label: 'Send Email', icon: Send },
     { id: 'record', label: 'Create Record', icon: Mail },
-    { id: 'batch', label: 'Batch Records', icon: Upload }
+    { id: 'create-template', label: 'Create Template', icon: Plus },
+    { id: 'update-template', label: 'Update Template', icon: Edit },
+    { id: 'send-template', label: 'Send Template', icon: BookImage },
   ];
 
   // Render current tab content
@@ -408,14 +447,37 @@ export function EmailCompose({ onBack }) {
             loading={loading}
           />
         );
-        
-      case 'batch':
+
+      case 'create-template':
         return (
-          <BatchRecordsTab 
-            data={batchData}
-            onChange={setBatchData}
+          <CreateTemplateTab 
+            data={templateData}
+            onChange={setTemplateData}
             onSubmit={handleSubmit}
             loading={loading}
+            mode="create"
+          />
+        );
+
+      case 'update-template':
+        return (
+          <CreateTemplateTab 
+            data={templateData}
+            onChange={setTemplateData}
+            onSubmit={handleSubmit}
+            loading={loading}
+            mode="update"
+          />
+        );
+
+      case 'send-template':
+        return (
+          <SendTemplateTab 
+            data={sendTemplateData}
+            onChange={setSendTemplateData}
+            onSubmit={handleSubmit}
+            loading={loading}
+            keapApi={keapApi}
           />
         );
         

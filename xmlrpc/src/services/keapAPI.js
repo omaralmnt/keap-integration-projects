@@ -672,7 +672,7 @@ class KeapAPI {
 
 
             }))
-            console.log('tags', tags)
+            // console.log('tags', tags)
             return {
                 success: true,
                 tags: tags,
@@ -1010,8 +1010,8 @@ class KeapAPI {
 
     async mergeContact(contactId, duplicateContactId) {
         try {
-            console.log('1 - ', contactId)
-            console.log('2 - ', duplicateContactId)
+            // console.log('1 - ', contactId)
+            // console.log('2 - ', duplicateContactId)
 
             const result = await this.xmlRpcCall('ContactService.merge',
                 [
@@ -1037,7 +1037,7 @@ class KeapAPI {
                     contactId
                 ]
             )
-            console.log('conmt', result)
+            // console.log('conmt', result)
             return { sucess: true, result }
 
         } catch (error) {
@@ -1055,8 +1055,8 @@ class KeapAPI {
 
     async linkContacts(contactId, contactId2) {
         try {
-            console.log('ga', contactId)
-            console.log('a', contactId2)
+            // console.log('ga', contactId)
+            // console.log('a', contactId2)
             const result = await this.xmlRpcCall('ContactService.linkContacts',
                 [
                     contactId,
@@ -1082,8 +1082,8 @@ class KeapAPI {
 
     async unlinkContacts(contactId, contactId2) {
         try {
-            console.log('ga', contactId)
-            console.log('a', contactId2)
+            // console.log('ga', contactId)
+            // console.log('a', contactId2)
             const result = await this.xmlRpcCall('ContactService.unlinkContacts',
                 [
                     contactId,
@@ -1128,7 +1128,7 @@ class KeapAPI {
                 email_address: item.Email
 
             }))
-            console.log('h', result)
+            // console.log('h', result)
             return {
                 success: true,
                 users: users,
@@ -1170,7 +1170,7 @@ class KeapAPI {
                 date_created: formatToISO(item.CreationDate),
                 last_updated: formatToISO(item.LastUpdated)
             }))
-            console.log('notes', result)
+            // console.log('notes', result)
             return {
                 success: true,
                 notes: notes,
@@ -1291,7 +1291,7 @@ class KeapAPI {
                 priority: item.Priority,
                 completion_date: formatToISO(item?.CompletionDate)
             }))
-            console.log('tasks', result)
+            // console.log('tasks', result)
             return {
                 success: true,
                 tasks: tasks,
@@ -1340,7 +1340,7 @@ class KeapAPI {
                 email,
                 reason
             ])
-            console.log(result)
+            // console.log(result)
             return { success: true }
 
         } catch (error) {
@@ -1375,7 +1375,7 @@ class KeapAPI {
 
     async sendEmail(emailData) {
         try {
-            console.log(emailData)
+            // console.log(emailData)
             const result = await this.xmlRpcCall('APIEmailService.sendEmail', [
                 emailData.contacts,
                 emailData.from_address,
@@ -1400,7 +1400,7 @@ class KeapAPI {
             const result = await this.xmlRpcCall('APIEmailService.getEmailTemplate', [
                 templateId
             ])
-            console.log('template', result)
+            // console.log('template', result)
             return { sucess: true, result }
 
         } catch (error) {
@@ -1410,7 +1410,7 @@ class KeapAPI {
     }
     async createEmailTemplate(templateData) {
         try {
-            console.log('templatedata ', templateData)
+            // console.log('templatedata ', templateData)
             const result = await this.xmlRpcCall('APIEmailService.addEmailTemplate', [
                 templateData.title,
                 templateData.categories,
@@ -1425,7 +1425,7 @@ class KeapAPI {
                 templateData.mergeContext
 
             ])
-            console.log('template', result)
+            // console.log('template', result)
             return { sucess: true, result }
 
         } catch (error) {
@@ -1436,7 +1436,7 @@ class KeapAPI {
 
     async updateEmailTemplate(templateData) {
         try {
-            console.log('templatedata ', templateData)
+            // console.log('templatedata ', templateData)
             const result = await this.xmlRpcCall('APIEmailService.updateEmailTemplate', [
                 templateData.templateId,
                 templateData.title,
@@ -1452,7 +1452,7 @@ class KeapAPI {
                 templateData.mergeContext
 
             ])
-            console.log('template', result)
+            // console.log('template', result)
             return { sucess: true, result }
 
         } catch (error) {
@@ -1483,7 +1483,7 @@ class KeapAPI {
     async getFiles(queryParams) {
         try {
             // queryParams.query = cleanParams(queryParams.query)
-            console.log('he', queryParams)
+            // console.log('he', queryParams)
             const result = await this.xmlRpcCall('DataService.query', [
                 'FileBox',      // table
                 queryParams.limit,          // limit
@@ -1493,7 +1493,7 @@ class KeapAPI {
                 // queryParams.OrderBy,//Field to order by
                 // true//ASCENDING OR DESCENDING (true = asc)
             ]);
-            console.log(result)
+            // console.log(result)
             return {
                 success: true, files: result.map(f => ({
                     id: f.Id,
@@ -1520,7 +1520,7 @@ class KeapAPI {
             const resultDownloadUrl = await this.xmlRpcCall('FileService.getDownloadUrl', [
                 fileId
             ]);
-            console.log(resultFile)
+            // console.log(resultFile)
             return {
                 success: true,
                 file: resultFile,
@@ -1574,14 +1574,14 @@ class KeapAPI {
     async uploadFile(fileData) {
         try {
 
-            console.log('file',fileData)
+            // console.log('file', fileData)
             // queryParams.query = cleanParams(queryParams.query)
             const resultFile = await this.xmlRpcCall('FileService.uploadFile', [
                 fileData.contact_id,
                 fileData.file_name,
                 fileData.file
-            ]); 
-            console.log('uploadfile' ,resultFile)
+            ]);
+            // console.log('uploadfile', resultFile)
             return {
                 success: true,
                 result: resultFile,
@@ -1590,6 +1590,474 @@ class KeapAPI {
             console.error('Error in getFileById:', error.message);
             const errorInfo = handleError(error, 'rename file');
             return { success: false, error: errorInfo };
+        }
+    }
+
+    async getProducts(queryParams) {
+        try {
+            // Obtener productos
+            const result = await this.xmlRpcCall('DataService.query', [
+                'Product',
+                queryParams.limit || 100,
+                0,
+                {},
+                ['Id', 'Sku', 'Status', 'ProductName', 'Description', 'ProductPrice', 'ShortDescription']
+            ]);
+
+            // Cache para categorías para evitar consultas duplicadas
+            const categoryCache = {};
+
+            // Mapear productos con sus categorías
+            const products = await Promise.all(result.map(async (item) => {
+                try {
+                    // Obtener asignaciones de categoría para este producto específico
+                    const categoryAssignments = await this.xmlRpcCall('DataService.query', [
+                        'ProductCategoryAssign',
+                        100,
+                        0,
+                        {
+                            ProductId: item.Id
+                        },
+                        ['ProductCategoryId', 'ProductId']
+                    ]);
+
+                    const categories = [];
+
+                    // Para cada asignación de categoría, obtener los detalles de la categoría
+                    for (const assignment of categoryAssignments) {
+                        const categoryId = assignment.ProductCategoryId;
+
+                        // Usar cache para evitar consultas duplicadas de la misma categoría
+                        if (!categoryCache[categoryId]) {
+                            try {
+                                const categoryResult = await this.xmlRpcCall('DataService.query', [
+                                    'ProductCategory',
+                                    1,
+                                    0,
+                                    {
+                                        Id: categoryId
+                                    },
+                                    ['Id', 'CategoryDisplayName']
+                                ]);
+
+                                if (categoryResult && categoryResult.length > 0) {
+                                    categoryCache[categoryId] = categoryResult[0];
+                                }
+                            } catch (categoryError) {
+                                console.error(`Error fetching category ${categoryId}:`, categoryError);
+                                categoryCache[categoryId] = null;
+                            }
+                        }
+
+                        // Agregar categoría si existe en cache y no es null
+                        if (categoryCache[categoryId]) {
+                            categories.push({
+                                id: categoryCache[categoryId].Id,
+                                name: categoryCache[categoryId].CategoryDisplayName
+                            });
+                        }
+                    }
+
+                    return {
+                        "id": item.Id,
+                        "sku": item.Sku,
+                        "status": item.Status,
+                        "product_name": item.ProductName,
+                        "product_desc": item.Description,
+                        "product_price": item.ProductPrice,
+                        "product_short_desc": item.ShortDescription,
+                        "categories": categories
+                    };
+                } catch (productError) {
+                    console.error(`Error processing product ${item.Id}:`, productError);
+                    // Retornar producto sin categorías en caso de error
+                    return {
+                        "id": item.Id,
+                        "sku": item.Sku,
+                        "status": item.Status,
+                        "product_name": item.ProductName,
+                        "product_desc": item.Description,
+                        "product_price": item.ProductPrice,
+                        "product_short_desc": item.ShortDescription,
+                        "categories": []
+                    };
+                }
+            }));
+
+            return {
+                success: true,
+                products: products,
+                count: products.length
+            };
+        } catch (error) {
+            const errorInfo = handleError(error, 'get products'); // Corregir mensaje de error
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+
+
+    async getProductById(productId) {
+        try {
+            // Obtener el producto específico por ID
+            const result = await this.xmlRpcCall('DataService.query', [
+                'Product',
+                1,
+                0,
+                {
+                    Id: productId
+                },
+                ['Id', 'Sku', 'Status', 'ProductName', 'Description', 'ProductPrice', 'ShortDescription', 'LargeImage']
+            ]);
+
+            if (!result || result.length === 0) {
+                return {
+                    success: false,
+                    error: 'Product not found'
+                };
+            }
+
+            const product = result[0];
+
+            // Obtener asignaciones de categoría para este producto
+            const categoryAssignments = await this.xmlRpcCall('DataService.query', [
+                'ProductCategoryAssign',
+                100,
+                0,
+                {
+                    ProductId: product.Id
+                },
+                ['ProductCategoryId', 'ProductId']
+            ]);
+
+            const categories = [];
+
+            // Para cada asignación de categoría, obtener los detalles de la categoría
+            for (const assignment of categoryAssignments) {
+                try {
+                    const categoryResult = await this.xmlRpcCall('DataService.query', [
+                        'ProductCategory',
+                        1,
+                        0,
+                        {
+                            Id: assignment.ProductCategoryId
+                        },
+                        ['Id', 'CategoryDisplayName']
+                    ]);
+
+                    if (categoryResult && categoryResult.length > 0) {
+                        categories.push({
+                            id: categoryResult[0].Id,
+                            name: categoryResult[0].CategoryDisplayName
+                        });
+                    }
+                } catch (categoryError) {
+                    console.error(`Error fetching category ${assignment.ProductCategoryId}:`, categoryError);
+                }
+            }
+
+            // Obtener subscription plans para este producto
+            const subscriptionPlans = [];
+            try {
+                const subscriptionResult = await this.xmlRpcCall('DataService.query', [
+                    'SubscriptionPlan',
+                    100,
+                    0,
+                    {
+                        ProductId: product.Id
+                    },
+                    ['Id', 'Active', 'Cycle', 'Frequency', 'NumberOfCycles', 'PlanPrice']
+                ]);
+
+                // Mapear subscription plans al formato esperado
+                subscriptionResult.forEach((plan, index) => {
+                    // Convertir cycle string a número según documentación
+                    const getCycleType = (cycle) => {
+                        switch (cycle) {
+                            case '1': return 'YEAR';
+                            case '2': return 'MONTH';
+                            case '3': return 'WEEK';
+                            case '6': return 'DAY';
+                            default: return 'MONTH'; // default
+                        }
+                    };
+
+                    subscriptionPlans.push({
+                        "id": plan.Id,
+                        "frequency": plan.Frequency,
+                        "active": plan.Active,
+                        "cycle_type": getCycleType(plan.Cycle),
+                        "plan_price": plan.PlanPrice,
+                        "subscription_plan_name": null, // No disponible en la tabla
+                        "number_of_cycles": plan.NumberOfCycles,
+                        "subscription_plan_index": index + 1,
+                        "cycle": 0 // No está claro qué representa este campo
+                    });
+                });
+            } catch (subscriptionError) {
+                console.error(`Error fetching subscription plans for product ${product.Id}:`, subscriptionError);
+            }
+
+            // Mapear a formato esperado por frontend (solo campos disponibles)
+            const productData = {
+                "id": product.Id,
+                "sku": product.Sku,
+                "active": product.Status === 1, // Status 1 = Active, 0 = Inactive
+                "product_name": product.ProductName,
+                "sub_category_id": 0, // No disponible, valor por defecto
+                "product_desc": product.Description,
+                "product_price": product.ProductPrice,
+                "product_short_desc": product.ShortDescription,
+                // "subscription_only": subscriptionPlans.length > 0 && product.ProductPrice === 0, // Inferir si es solo suscripción
+                "product_options": [], // No disponible en la tabla Product
+                "subscription_plans": subscriptionPlans,
+                "status": product.Status,
+                "categories": categories,
+                large_image: product.LargeImage
+            };
+
+            return productData
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'get product by id');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+
+
+    async updateProduct(productId, productData) {
+        try {
+            // Validar que el producto existe
+            const existingProduct = await this.getProductById(productId);
+            if (!existingProduct || existingProduct.success === false) {
+                return {
+                    success: false,
+                    error: 'Product not found'
+                };
+            }
+
+            // Actualizar el producto principal
+            const productUpdateData = {
+                Id: productId,
+                Sku: productData.sku,
+                Status: productData.active ? 1 : 0, // Convertir boolean a número
+                ProductName: productData.product_name,
+                Description: productData.product_desc,
+                ProductPrice: productData.product_price,
+                ShortDescription: productData.product_short_desc,
+                // LargeImage: productData.large_image
+            };
+
+            const productUpdateResult = await this.xmlRpcCall('DataService.update', [
+                'Product',
+                productId,
+                productUpdateData
+            ]);
+
+            if (!productUpdateResult) {
+                return {
+                    success: false,
+                    error: 'Failed to update product'
+                };
+            }
+
+            // Retornar el producto actualizado
+            const updatedProduct = await this.getProductById(productId);
+            return {
+                success: true,
+                data: updatedProduct
+            };
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'update product');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+
+    async uploadProductImage(productId, imageData) {
+        try {
+            const result = await this.xmlRpcCall('DataService.update',
+                [
+                    'Product',
+                    productId,
+                    {
+                        LargeImage: imageData
+                    }
+                ]
+            )
+            // console.log('result ', result)
+            return { sucess: true, result }
+        } catch (error) {
+            const errorInfo = handleError(error, 'update product');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+
+    async createProductSubscription(productId, planData) {
+        try {
+            // Función para convertir cycle_type a número según la documentación
+            const getCycleNumber = (cycleType) => {
+                switch (cycleType) {
+                    case 'YEAR': return 1;
+                    case 'MONTH': return 2;
+                    case 'WEEK': return 3;
+                    case 'DAY': return 6;
+                    default: return 2; // default MONTH
+                }
+            };
+
+            // Preparar los datos para el subscription plan
+            const subscriptionPlanData = {
+                ProductId: productId,
+                Active: planData.active,
+                Cycle: getCycleNumber(planData.cycle_type),
+                Frequency: planData.frequency,
+                NumberOfCycles: planData.number_of_cycles,
+                PlanPrice: planData.plan_price,
+                PreAuthorizeAmount: 0, // Valor por defecto si no se proporciona
+                Prorate: false // Valor por defecto si no se proporciona
+            };
+
+            // Crear el subscription plan
+            const result = await this.xmlRpcCall('DataService.add', [
+                'SubscriptionPlan',
+                subscriptionPlanData
+            ]);
+
+
+
+            return {
+                success: true,
+                result
+            };
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'create subscription plan');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+
+
+    async updateProductSubscription(planId, planData) {
+        try {
+            // Función para convertir cycle_type a número según la documentación
+            const getCycleNumber = (cycleType) => {
+                switch (cycleType) {
+                    case 'YEAR': return 1;
+                    case 'MONTH': return 2;
+                    case 'WEEK': return 3;
+                    case 'DAY': return 6;
+                    default: return 2; // default MONTH
+                }
+            };
+
+            // Preparar los datos para el subscription plan
+            const subscriptionPlanData = {
+                Active: planData.active,
+                Cycle: getCycleNumber(planData.cycle_type),
+                Frequency: planData.frequency,
+                NumberOfCycles: planData.number_of_cycles,
+                PlanPrice: planData.plan_price,
+                PreAuthorizeAmount: 0, // Valor por defecto si no se proporciona
+                Prorate: false // Valor por defecto si no se proporciona
+            };
+
+            // Crear el subscription plan
+            const result = await this.xmlRpcCall('DataService.update', [
+                'SubscriptionPlan',
+                planId,
+                subscriptionPlanData
+            ]);
+
+
+
+            return {
+                success: true,
+                result
+            };
+
+        } catch (error) {
+            const errorInfo = handleError(error, 'create subscription plan');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+
+    }
+
+    async getProductInventory(productId) {
+        try {
+            const result = await this.xmlRpcCall('ProductService.getInventory', [productId])
+            // console.log('inv', result)
+            return result
+        } catch (error) {
+            const errorInfo = handleError(error, 'create subscription plan');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+
+    async incrementProductInventory(productId) {
+        try {
+            const result = await this.xmlRpcCall('ProductService.incrementInventory', [productId])
+            // console.log('inv', result)
+            return result
+        } catch (error) {
+            const errorInfo = handleError(error, 'incrementInventory');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+    async decrementProductInventory(productId) {
+        try {
+            const result = await this.xmlRpcCall('ProductService.decrementInventory', [productId])
+            // console.log('inv', result)
+            return result
+        } catch (error) {
+            const errorInfo = handleError(error, 'incrementInventory');
+            return {
+                success: false,
+                error: errorInfo
+            };
+        }
+    }
+
+        async adjustProductInventory(action = 'increase',productId,quantity) {
+        try {
+
+            if (action === 'increase') {
+                action ='ProductService.increaseInventory'
+            }else if (action === 'decrease') {
+               action ='ProductService.decreaseInventory'
+            }
+            const result = await this.xmlRpcCall(action, [productId,quantity])
+            // console.log('inv', result)
+            return result
+        } catch (error) {
+            const errorInfo = handleError(error, 'incrementInventory');
+            return {
+                success: false,
+                error: errorInfo
+            };
         }
     }
 }

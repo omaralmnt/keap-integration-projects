@@ -38,7 +38,7 @@ export function Products() {
   const [sku, setSku] = useState('');
   const [status, setStatus] = useState('');
   const [subscriptionOnly, setSubscriptionOnly] = useState('');
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(100);
   const [offset, setOffset] = useState(0);
   const [previous, setPrevious] = useState('');
   const [next, setNext] = useState('');

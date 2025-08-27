@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import keapAPI from '../../services/keapAPI';
+import { toast } from 'react-toastify';
+import { ProductInventory } from './ProductInventory';
 
 // Card component for sections
 const Card = ({ children, className = '' }) => {
@@ -84,7 +86,7 @@ const Checkbox = ({ label, checked, onChange, disabled }) => {
 export function ProductDetails() {
   const { productId } = useParams();
   const navigate = useNavigate();
-  
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -110,6 +112,13 @@ export function ProductDetails() {
   const [isDeletingSubscription, setIsDeletingSubscription] = useState(false);
   const [deleteSubscriptionError, setDeleteSubscriptionError] = useState(null);
 
+  // New states for subscription editing
+  const [editingSubscription, setEditingSubscription] = useState(null);
+  const [isEditingSubscription, setIsEditingSubscription] = useState(false);
+  const [isSavingSubscription, setIsSavingSubscription] = useState(false);
+  const [saveSubscriptionError, setSaveSubscriptionError] = useState(null);
+  const [saveSubscriptionSuccess, setSaveSubscriptionSuccess] = useState(false);
+
   // Form state for editable fields
   const [formData, setFormData] = useState({
     active: true,
@@ -126,9 +135,18 @@ export function ProductDetails() {
     active: true,
     cycle_type: 'MONTH',
     frequency: 1,
-    number_of_cycles: 0, // 0 means unlimited
+    number_of_cycles: 0,
     plan_price: 0,
     subscription_plan_index: 1
+  });
+
+  // Form state for subscription editing
+  const [editSubscriptionData, setEditSubscriptionData] = useState({
+    active: true,
+    cycle_type: 'MONTH',
+    frequency: 1,
+    number_of_cycles: 0,
+    plan_price: 0
   });
 
   useEffect(() => {
@@ -137,9 +155,9 @@ export function ProductDetails() {
         setLoading(true);
         setError(null);
         const productData = await keapAPI.getProductById(productId);
+        console.log('pro', productData);
         setProduct(productData);
-        
-        // Initialize form data with current product data
+
         setFormData({
           active: productData.active ?? true,
           product_desc: productData.product_desc || '',
@@ -167,7 +185,6 @@ export function ProductDetails() {
       ...prev,
       [field]: value
     }));
-    // Clear success message when user starts editing
     if (saveSuccess) {
       setSaveSuccess(false);
     }
@@ -179,15 +196,13 @@ export function ProductDetails() {
       setSaveError(null);
       setSaveSuccess(false);
 
-      // Call the API to update the product
-      const updatedProduct = await keapAPI.updateProduct(productId, formData);
-      
-      // Update local state with the response
-      setProduct(updatedProduct);
+      await keapAPI.updateProduct(productId, formData);
+
       setIsEditing(false);
       setSaveSuccess(true);
+      const updatedProduct = await keapAPI.getProductById(productId);
+      setProduct(updatedProduct);
 
-      // Hide success message after 3 seconds
       setTimeout(() => {
         setSaveSuccess(false);
       }, 3000);
@@ -201,7 +216,6 @@ export function ProductDetails() {
   };
 
   const handleCancel = () => {
-    // Reset form data to original product data
     setFormData({
       active: product.active ?? true,
       product_desc: product.product_desc || '',
@@ -220,13 +234,7 @@ export function ProductDetails() {
     try {
       setIsDeleting(true);
       setDeleteError(null);
-
-      // Call the API to delete the product
-      await keapAPI.deleteProduct(productId);
-      
-      // Navigate back to products list after successful deletion
-      navigate('/products');
-
+      toast.info('XML-RPC does not support delete for products');
     } catch (err) {
       setDeleteError(err.message || 'Failed to delete product');
       console.error('Error deleting product:', err);
@@ -246,10 +254,84 @@ export function ProductDetails() {
     setDeleteError(null);
   };
 
+  // New subscription editing functions
+  const handleEditSubscription = (subscription) => {
+    setEditingSubscription(subscription);
+    setEditSubscriptionData({
+      active: subscription.active ?? true,
+      cycle_type: subscription.cycle_type || 'MONTH',
+      frequency: subscription.frequency || 1,
+      number_of_cycles: subscription.number_of_cycles || 0,
+      plan_price: subscription.plan_price || 0
+    });
+    setIsEditingSubscription(true);
+    setSaveSubscriptionError(null);
+    setSaveSubscriptionSuccess(false);
+  };
+
+  const handleSaveSubscription = async () => {
+    if (!editingSubscription) return;
+
+    try {
+      setIsSavingSubscription(true);
+      setSaveSubscriptionError(null);
+      setSaveSubscriptionSuccess(false);
+
+      console.log('Updating subscription plan with data:', editSubscriptionData);
+
+      const result = await keapAPI.updateProductSubscription(editingSubscription.id, editSubscriptionData);
+
+      if (result.success) {
+        console.log('Subscription plan updated successfully');
+
+        const updatedProduct = await keapAPI.getProductById(productId);
+        setProduct(updatedProduct);
+
+        setSaveSubscriptionSuccess(true);
+        setIsEditingSubscription(false);
+        setEditingSubscription(null);
+
+        setTimeout(() => {
+          setSaveSubscriptionSuccess(false);
+        }, 3000);
+      } else {
+        throw new Error(result.error?.message || 'Failed to update subscription plan');
+      }
+
+    } catch (err) {
+      console.error('Subscription update error:', err);
+      setSaveSubscriptionError(err.message || 'Failed to update subscription plan');
+    } finally {
+      setIsSavingSubscription(false);
+    }
+  };
+
+  const handleCancelEditSubscription = () => {
+    setIsEditingSubscription(false);
+    setEditingSubscription(null);
+    setSaveSubscriptionError(null);
+    setSaveSubscriptionSuccess(false);
+    setEditSubscriptionData({
+      active: true,
+      cycle_type: 'MONTH',
+      frequency: 1,
+      number_of_cycles: 0,
+      plan_price: 0
+    });
+  };
+
+  const handleEditSubscriptionInputChange = (field, value) => {
+    setEditSubscriptionData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    if (saveSubscriptionSuccess) {
+      setSaveSubscriptionSuccess(false);
+    }
+  };
+
   // Image upload functions
   const handleImageUpload = async () => {
-    console.log('handleImageUpload called', selectedFile); // Debug log
-    
     if (!selectedFile) {
       setUploadError('Please select an image file');
       return;
@@ -260,15 +342,8 @@ export function ProductDetails() {
       setUploadError(null);
       setUploadSuccess(false);
 
-      console.log('Starting upload process...'); // Debug log
-
-      // Convert file to base64
       const base64Data = await fileToBase64(selectedFile);
-      console.log('Base64 conversion completed'); // Debug log
-      
-      // Generate SHA256 checksum
       const checksum = await generateSHA256(base64Data);
-      console.log('Checksum generated:', checksum); // Debug log
 
       const imageData = {
         checksum: checksum,
@@ -276,23 +351,22 @@ export function ProductDetails() {
         file_name: selectedFile.name
       };
 
-      console.log('Calling API...'); // Debug log
-      // Call the API to upload the image
       await keapAPI.uploadProductImage(productId, imageData);
-      
-      console.log('Upload successful!'); // Debug log
+
       setUploadSuccess(true);
       setShowImageUpload(false);
       setSelectedFile(null);
       setImagePreview(null);
 
-      // Hide success message after 3 seconds
+      const updatedProduct = await keapAPI.getProductById(productId);
+      setProduct(updatedProduct);
+
       setTimeout(() => {
         setUploadSuccess(false);
       }, 3000);
 
     } catch (err) {
-      console.error('Upload error:', err); // Debug log
+      console.error('Upload error:', err);
       setUploadError(err.message || 'Failed to upload image');
     } finally {
       setIsUploading(false);
@@ -300,21 +374,16 @@ export function ProductDetails() {
   };
 
   const handleFileSelect = (event) => {
-    console.log('File select triggered'); // Debug log
     const file = event.target.files[0];
     if (!file) return;
 
-    console.log('File selected:', file.name, file.type, file.size); // Debug log
-
-    // Validate file type
     const allowedTypes = ['image/png', 'image/gif', 'image/jpg', 'image/jpeg'];
     if (!allowedTypes.includes(file.type)) {
       setUploadError('Invalid file type. Please select a PNG, GIF, JPG, or JPEG image.');
       return;
     }
 
-    // Validate file size (3MB max)
-    const maxSize = 3 * 1024 * 1024; // 3MB in bytes
+    const maxSize = 3 * 1024 * 1024;
     if (file.size > maxSize) {
       setUploadError('File too large. Maximum size is 3MB.');
       return;
@@ -323,10 +392,8 @@ export function ProductDetails() {
     setSelectedFile(file);
     setUploadError(null);
 
-    // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
-      console.log('Preview created'); // Debug log
       setImagePreview(e.target.result);
     };
     reader.readAsDataURL(file);
@@ -341,19 +408,16 @@ export function ProductDetails() {
 
       console.log('Creating subscription with data:', subscriptionData);
 
-      // Call the API to create the subscription
       const newSubscription = await keapAPI.createProductSubscription(productId, subscriptionData);
-      
+
       console.log('Subscription created successfully:', newSubscription);
-      
-      // Refresh product data to show the new subscription
+
       const updatedProduct = await keapAPI.getProductById(productId);
       setProduct(updatedProduct);
-      
+
       setSubscriptionSuccess(true);
       setShowSubscriptionModal(false);
-      
-      // Reset form
+
       setSubscriptionData({
         active: true,
         cycle_type: 'MONTH',
@@ -363,7 +427,6 @@ export function ProductDetails() {
         subscription_plan_index: 1
       });
 
-      // Hide success message after 3 seconds
       setTimeout(() => {
         setSubscriptionSuccess(false);
       }, 3000);
@@ -384,15 +447,14 @@ export function ProductDetails() {
   };
 
   const handleShowSubscriptionModal = () => {
-    // Calculate next subscription plan index
     const currentPlans = product.subscription_plans || [];
     const nextIndex = currentPlans.length > 0 ? Math.max(...currentPlans.map(p => p.subscription_plan_index || 0)) + 1 : 1;
-    
+
     setSubscriptionData(prev => ({
       ...prev,
       subscription_plan_index: nextIndex
     }));
-    
+
     setShowSubscriptionModal(true);
     setSubscriptionError(null);
   };
@@ -420,15 +482,7 @@ export function ProductDetails() {
 
       console.log('Deleting subscription:', subscriptionToDelete.id);
 
-      // Call the API to delete the subscription
-      await keapAPI.deleteProductSubscription(productId, subscriptionToDelete.id);
-      
-      console.log('Subscription deleted successfully');
-      
-      // Refresh product data to remove the deleted subscription
-      const updatedProduct = await keapAPI.getProductById(productId);
-      setProduct(updatedProduct);
-      
+      toast.info('XML RPC does not support deleting subscription plans');
       setShowDeleteSubscriptionConfirm(false);
       setSubscriptionToDelete(null);
 
@@ -454,42 +508,33 @@ export function ProductDetails() {
 
   // Utility functions
   const fileToBase64 = (file) => {
-    console.log('Converting file to base64...'); // Debug log
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => {
-        // Remove the data:image/...;base64, prefix
         const base64 = reader.result.split(',')[1];
-        console.log('Base64 conversion complete, length:', base64.length); // Debug log
         resolve(base64);
       };
       reader.onerror = (error) => {
-        console.error('FileReader error:', error); // Debug log
         reject(error);
       };
     });
   };
 
   const generateSHA256 = async (base64String) => {
-    console.log('Generating SHA256...'); // Debug log
     try {
-      // Convert base64 to ArrayBuffer
       const binaryString = atob(base64String);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // Generate SHA256 hash
       const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      console.log('SHA256 generated successfully'); // Debug log
+
       return hashHex;
     } catch (error) {
-      console.error('SHA256 generation error:', error); // Debug log
       throw error;
     }
   };
@@ -504,7 +549,7 @@ export function ProductDetails() {
   const formatCycleType = (cycleType) => {
     const types = {
       'DAY': 'Daily',
-      'WEEK': 'Weekly', 
+      'WEEK': 'Weekly',
       'MONTH': 'Monthly',
       'YEAR': 'Yearly'
     };
@@ -599,6 +644,23 @@ export function ProductDetails() {
         </div>
       )}
 
+      {saveSubscriptionSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-green-800">
+                Subscription plan updated successfully!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {saveError && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
@@ -610,6 +672,23 @@ export function ProductDetails() {
             <div className="ml-3">
               <p className="text-sm font-medium text-red-800">
                 Error: {saveError}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {saveSubscriptionError && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-red-800">
+                Subscription Update Error: {saveSubscriptionError}
               </p>
             </div>
           </div>
@@ -721,12 +800,39 @@ export function ProductDetails() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Product Image */}
+          {product.large_image && (
+            <Card>
+              <div className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Image</h2>
+                <div className="bg-gray-50 rounded-lg p-4 text-center">
+                  <img
+                    src={`data:image/jpeg;base64,${product.large_image}`}
+                    alt={product.product_name || 'Product image'}
+                    className="max-w-full h-auto max-h-96 mx-auto rounded-lg shadow-sm"
+                    onError={(e) => {
+                      console.error('Failed to load product image:', e);
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
+                  />
+                  <div className="hidden text-gray-500 py-8">
+                    <svg className="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-sm">Failed to load image</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Product Information */}
           <Card>
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Product Information</h2>
-                {!isEditing && (
+                {!isEditing && !isEditingSubscription && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -745,7 +851,7 @@ export function ProductDetails() {
                     onChange={(e) => handleInputChange('product_name', e.target.value)}
                     placeholder="Enter product name"
                   />
-                  
+
                   <Input
                     label="SKU"
                     value={formData.sku}
@@ -817,7 +923,7 @@ export function ProductDetails() {
                     <label className="block text-sm font-medium text-gray-500 mb-1">Product Name</label>
                     <p className="text-sm text-gray-900">{product.product_name}</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-1">SKU</label>
                     <p className="text-sm text-gray-900 font-mono">{product.sku}</p>
@@ -838,9 +944,9 @@ export function ProductDetails() {
                   {product.url && (
                     <div>
                       <label className="block text-sm font-medium text-gray-500 mb-1">Product URL</label>
-                      <a 
-                        href={product.url} 
-                        target="_blank" 
+                      <a
+                        href={product.url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:text-blue-800 underline break-all"
                       >
@@ -863,7 +969,7 @@ export function ProductDetails() {
                     variant="outline"
                     size="sm"
                     onClick={handleShowSubscriptionModal}
-                    disabled={isEditing || isCreatingSubscription}
+                    disabled={isEditing || isCreatingSubscription || isEditingSubscription}
                     className="text-blue-600 hover:text-blue-800 hover:border-blue-300"
                   >
                     Add Plan
@@ -883,69 +989,181 @@ export function ProductDetails() {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Badge variant={plan.active ? 'success' : 'error'}>
-                            {plan.active ? 'Active' : 'Inactive'}
+                          <Badge variant={(isEditingSubscription && editingSubscription?.id === plan.id ? editSubscriptionData.active : plan.active) ? 'success' : 'error'}>
+                            {(isEditingSubscription && editingSubscription?.id === plan.id ? editSubscriptionData.active : plan.active) ? 'Active' : 'Inactive'}
                           </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteSubscriptionClick(plan)}
-                            disabled={isEditing || isDeletingSubscription}
-                            className="text-red-600 hover:text-red-800 hover:border-red-300 ml-2"
-                          >
-                            {isDeletingSubscription && subscriptionToDelete?.id === plan.id ? 'Deleting...' : 'Delete'}
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Price</label>
-                          <p className="text-gray-900 font-semibold">{formatPrice(plan.plan_price)}</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Billing Cycle</label>
-                          <p className="text-gray-900">
-                            Every {plan.frequency} {formatCycleType(plan.cycle_type)}
-                            {plan.frequency > 1 ? 's' : ''}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Frequency</label>
-                          <p className="text-gray-900">{plan.frequency}</p>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Total Cycles</label>
-                          <p className="text-gray-900">{plan.number_of_cycles === 0 ? 'Unlimited' : plan.number_of_cycles}</p>
+                          {!isEditingSubscription && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditSubscription(plan)}
+                                disabled={isEditing || isDeletingSubscription || isCreatingSubscription}
+                                className="text-blue-600 hover:text-blue-800 hover:border-blue-300"
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteSubscriptionClick(plan)}
+                                disabled={isEditing || isDeletingSubscription}
+                                className="text-red-600 hover:text-red-800 hover:border-red-300"
+                              >
+                                {isDeletingSubscription && subscriptionToDelete?.id === plan.id ? 'Deleting...' : 'Delete'}
+                              </Button>
+                            </>
+                          )}
+                          {isEditingSubscription && editingSubscription?.id === plan.id && (
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                onClick={handleSaveSubscription}
+                                disabled={isSavingSubscription}
+                                className="flex items-center space-x-1"
+                              >
+                                {isSavingSubscription && (
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                )}
+                                <span>{isSavingSubscription ? 'Saving...' : 'Save'}</span>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCancelEditSubscription}
+                                disabled={isSavingSubscription}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      {plan.url && (
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Plan URL</label>
-                          <a 
-                            href={plan.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
-                          >
-                            {plan.url}
-                          </a>
+                      {isEditingSubscription && editingSubscription?.id === plan.id ? (
+                        // Editing mode
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <Input
+                              label="Price"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={editSubscriptionData.plan_price}
+                              onChange={(e) => handleEditSubscriptionInputChange('plan_price', parseFloat(e.target.value) || 0)}
+                              placeholder="0.00"
+                              disabled={isSavingSubscription}
+                            />
+
+                            <div className="space-y-1">
+                              <label className="block text-sm font-medium text-gray-500">Cycle Type</label>
+                              <select
+                                value={editSubscriptionData.cycle_type}
+                                onChange={(e) => handleEditSubscriptionInputChange('cycle_type', e.target.value)}
+                                disabled={isSavingSubscription}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                              >
+                                <option value="DAY">Daily</option>
+                                <option value="WEEK">Weekly</option>
+                                <option value="MONTH">Monthly</option>
+                                <option value="YEAR">Yearly</option>
+                              </select>
+                            </div>
+
+                            <Input
+                              label="Frequency"
+                              type="number"
+                              min="1"
+                              value={editSubscriptionData.frequency}
+                              onChange={(e) => handleEditSubscriptionInputChange('frequency', parseInt(e.target.value) || 1)}
+                              placeholder="1"
+                              disabled={isSavingSubscription}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <Input
+                              label="Number of Cycles"
+                              type="number"
+                              min="0"
+                              value={editSubscriptionData.number_of_cycles}
+                              onChange={(e) => handleEditSubscriptionInputChange('number_of_cycles', parseInt(e.target.value) || 0)}
+                              placeholder="0 (unlimited)"
+                              disabled={isSavingSubscription}
+                            />
+
+                            <div className="flex items-end">
+                              <Checkbox
+                                label="Active Plan"
+                                checked={editSubscriptionData.active}
+                                onChange={(e) => handleEditSubscriptionInputChange('active', e.target.checked)}
+                                disabled={isSavingSubscription}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                            <h4 className="text-sm font-medium text-blue-900 mb-2">Updated Plan Preview</h4>
+                            <div className="text-xs text-blue-800 space-y-1">
+                              <p><strong>Price:</strong> {formatPrice(editSubscriptionData.plan_price)}</p>
+                              <p><strong>Billing:</strong> Every {editSubscriptionData.frequency} {formatCycleType(editSubscriptionData.cycle_type).toLowerCase()}</p>
+                              <p><strong>Duration:</strong> {editSubscriptionData.number_of_cycles === 0 ? 'Unlimited' : `${editSubscriptionData.number_of_cycles} cycles`}</p>
+                              <p><strong>Status:</strong> {editSubscriptionData.active ? 'Active' : 'Inactive'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        // Display mode
+                        <div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Price</label>
+                              <p className="text-gray-900 font-semibold">{formatPrice(plan.plan_price)}</p>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Billing Cycle</label>
+                              <p className="text-gray-900">
+                                Every {plan.frequency} {formatCycleType(plan.cycle_type)}
+                                {plan.frequency > 1 ? 's' : ''}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Frequency</label>
+                              <p className="text-gray-900">{plan.frequency}</p>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Total Cycles</label>
+                              <p className="text-gray-900">{plan.number_of_cycles === 0 ? 'Unlimited' : plan.number_of_cycles}</p>
+                            </div>
+                          </div>
+
+                          {plan.url && (
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Plan URL</label>
+                              <a
+                                href={plan.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
+                              >
+                                {plan.url}
+                              </a>
+                            </div>
+                          )}
+
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>Cycle Value: {plan.cycle || 0}</span>
+                              <span>
+                                {plan.number_of_cycles === 0 ?
+                                  'Recurring indefinitely' :
+                                  `${plan.number_of_cycles} total payments`
+                                }
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       )}
-
-                      {/* Additional info section */}
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Cycle Value: {plan.cycle || 0}</span>
-                          <span>
-                            {plan.number_of_cycles === 0 ? 
-                              'Recurring indefinitely' : 
-                              `${plan.number_of_cycles} total payments`
-                            }
-                          </span>
-                        </div>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -963,7 +1181,7 @@ export function ProductDetails() {
                     variant="outline"
                     size="sm"
                     onClick={handleShowSubscriptionModal}
-                    disabled={isEditing || isCreatingSubscription}
+                    disabled={isEditing || isCreatingSubscription || isEditingSubscription}
                     className="text-blue-600 hover:text-blue-800 hover:border-blue-300"
                   >
                     Add Plan
@@ -978,7 +1196,7 @@ export function ProductDetails() {
                   <p className="text-sm text-gray-500 mb-4">No subscription plans created yet</p>
                   <Button
                     onClick={handleShowSubscriptionModal}
-                    disabled={isEditing || isCreatingSubscription}
+                    disabled={isEditing || isCreatingSubscription || isEditingSubscription}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     Create First Plan
@@ -987,6 +1205,8 @@ export function ProductDetails() {
               </div>
             </Card>
           )}
+          <ProductInventory productId={productId} />
+
         </div>
 
         {/* Sidebar */}
@@ -1002,21 +1222,21 @@ export function ProductDetails() {
                     {formatPrice(isEditing ? formData.product_price : product.product_price)}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
                   <span className="text-sm font-medium text-gray-500">Status</span>
                   <Badge variant={(isEditing ? formData.active : product.active) ? 'success' : 'error'}>
                     {(isEditing ? formData.active : product.active) ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
-                
+
                 <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
                   <span className="text-sm font-medium text-gray-500">Type</span>
                   <Badge variant={(isEditing ? formData.subscription_only : product.subscription_only) ? 'info' : 'default'}>
                     {(isEditing ? formData.subscription_only : product.subscription_only) ? 'Subscription' : 'One-time'}
                   </Badge>
                 </div>
-                
+
                 <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
                   <span className="text-sm font-medium text-gray-500">Subscription Plans</span>
                   <span className="text-sm font-semibold text-gray-900">
@@ -1032,6 +1252,13 @@ export function ProductDetails() {
                     </span>
                   </div>
                 )}
+
+                {product.large_image && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                    <span className="text-sm font-medium text-gray-500">Image</span>
+                    <Badge variant="success">Available</Badge>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
@@ -1042,9 +1269,10 @@ export function ProductDetails() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
               <div className="space-y-3">
                 {!isEditing ? (
-                  <Button 
+                  <Button
                     className="w-full"
                     onClick={() => setIsEditing(true)}
+                    disabled={isEditingSubscription}
                   >
                     Edit Product
                   </Button>
@@ -1053,7 +1281,7 @@ export function ProductDetails() {
                     <Button
                       className="w-full"
                       onClick={handleSave}
-                      disabled={isSaving}
+                      disabled={isSaving || isEditingSubscription}
                     >
                       {isSaving ? 'Saving...' : 'Save Changes'}
                     </Button>
@@ -1061,36 +1289,35 @@ export function ProductDetails() {
                       variant="outline"
                       className="w-full"
                       onClick={handleCancel}
-                      disabled={isSaving}
+                      disabled={isSaving || isEditingSubscription}
                     >
                       Cancel
                     </Button>
                   </div>
                 )}
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full text-blue-600 hover:text-blue-800 hover:border-blue-300"
                   onClick={() => {
-                    console.log('Upload Image clicked'); // Debug log
                     setShowImageUpload(true);
                     setUploadError(null);
                     setSelectedFile(null);
                     setImagePreview(null);
                   }}
-                  disabled={isEditing || isUploading}
+                  disabled={isEditing || isUploading || isEditingSubscription}
                 >
                   {isUploading ? 'Uploading...' : 'Upload Image'}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full text-red-600 hover:text-red-800 hover:border-red-300" 
+                <Button
+                  variant="outline"
+                  className="w-full text-red-600 hover:text-red-800 hover:border-red-300"
                   onClick={handleDeleteClick}
-                  disabled={isEditing || isDeleting}
+                  disabled={isEditing || isDeleting || isEditingSubscription}
                 >
                   {isDeleting ? 'Deleting...' : 'Delete Product'}
                 </Button>
               </div>
-              {!isEditing && (
+              {(!isEditing && !isEditingSubscription) && (
                 <p className="text-xs text-gray-500 mt-3">
                   Some actions will be available in a future update
                 </p>
@@ -1155,12 +1382,12 @@ export function ProductDetails() {
               <div className="flex items-center justify-center mb-4">
                 <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
                   <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" />
                   </svg>
                 </div>
               </div>
               <h3 className="text-lg leading-6 font-medium text-gray-900 text-center mb-4">Upload Product Image</h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1182,9 +1409,9 @@ export function ProductDetails() {
                   <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
                     <div className="border border-gray-200 rounded-lg p-2">
-                      <img 
-                        src={imagePreview} 
-                        alt="Preview" 
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
                         className="max-w-full h-32 object-contain mx-auto"
                       />
                       <p className="text-xs text-gray-500 text-center mt-2">
@@ -1207,7 +1434,6 @@ export function ProductDetails() {
                     variant="outline"
                     className="flex-1"
                     onClick={() => {
-                      console.log('Cancel upload clicked'); // Debug log
                       setShowImageUpload(false);
                       setUploadError(null);
                       setSelectedFile(null);
@@ -1251,7 +1477,7 @@ export function ProductDetails() {
                 </div>
               </div>
               <h3 className="text-lg leading-6 font-medium text-gray-900 text-center mb-6">Create Subscription Plan</h3>
-              
+
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <Input
@@ -1264,7 +1490,7 @@ export function ProductDetails() {
                     placeholder="0.00"
                     disabled={isCreatingSubscription}
                   />
-                  
+
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-500">Cycle Type</label>
                     <select
@@ -1291,7 +1517,7 @@ export function ProductDetails() {
                     placeholder="1"
                     disabled={isCreatingSubscription}
                   />
-                  
+
                   <Input
                     label="Number of Cycles"
                     type="number"
@@ -1397,7 +1623,7 @@ export function ProductDetails() {
                   This action cannot be undone.
                 </p>
               </div>
-              
+
               {deleteSubscriptionError && (
                 <div className="mx-7 mb-3">
                   <div className="bg-red-50 border border-red-200 rounded-md p-3">

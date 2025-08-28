@@ -2124,7 +2124,393 @@ class KeapAPI {
         }
     }
 
+    async updateAffiliate(affiliateId, affiliateData) {
+        try {
+            affiliateData = cleanParams(affiliateData)
+            console.log('Updating affiliate:', affiliateId, affiliateData)
+            
+            const result = await this.xmlRpcCall('DataService.update', [
+                'Affiliate',      // table
+                affiliateId,      // record id
+                affiliateData     // updated data
+            ]);
 
+            console.log('updateAffiliate result:', result)
+            return { success: true, result }
+        } catch (error) {
+            console.error('Error in updateAffiliate:', error.message);
+            const errorInfo = handleError(error, 'Update affiliate');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+async getAffiliateCommissions(affiliateId, startDate, endDate) {
+    try {
+        console.log('Getting affiliate commissions:', affiliateId, startDate, endDate)
+        
+        // The issue is that xmlrpc-parser isn't properly handling Date objects
+        // We need to create a custom XML message with proper dateTime.iso8601 format
+        
+        const formatDateTimeForKeap = (dateStr) => {
+            if (!dateStr) {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                return `${year}${month}${day}T${hours}:${minutes}:${seconds}`;
+            }
+            
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+                throw new Error(`Invalid date: ${dateStr}`);
+            }
+            
+            // Format as YYYYMMDDTHH:MM:SS (same format as your parseXmlRpcDate expects)
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            return `${year}${month}${day}T${hours}:${minutes}:${seconds}`;
+        };
+
+        const startDateFormatted = formatDateTimeForKeap(startDate);
+        const endDateFormatted = formatDateTimeForKeap(endDate);
+        
+        console.log('Keap formatted dates:', startDateFormatted, endDateFormatted);
+        
+        // Get the access token
+        const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+        const privateKey = 'x';
+
+        if (!privateKey) {
+            throw new Error('Access token required for XML-RPC');
+        }
+
+        // Manually construct the XML-RPC request with proper dateTime format
+        const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>APIAffiliateService.affCommissions</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+    <param>
+      <value><int>${parseInt(affiliateId, 10)}</int></value>
+    </param>
+    <param>
+      <value><dateTime.iso8601>${startDateFormatted}</dateTime.iso8601></value>
+    </param>
+    <param>
+      <value><dateTime.iso8601>${endDateFormatted}</dateTime.iso8601></value>
+    </param>
+  </params>
+</methodCall>`;
+
+        console.log('Manual XML payload:', xmlPayload);
+
+        // Send the request using your HTTP client
+        const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'text/xml'
+            }
+        });
+
+        // Parse the response manually
+        const result = this.parseXmlRpcResponse(response.data);
+        
+        console.log('affCommissions result:', result);
+
+        // Format the results to match expected structure
+        const formattedCommissions = Array.isArray(result) ? result.map(commission => ({
+            Id: commission.Id || commission.id,
+            AffiliateId: commission.AffiliateId || commission.affiliateId || affiliateId,
+            ContactId: commission.ContactId || commission.contactId,
+            OrderId: commission.OrderId || commission.orderId,
+            ProductId: commission.ProductId || commission.productId,
+            Amount: commission.Amount || commission.amount || commission.CommissionAmount || 0,
+            Date: commission.Date || commission.date || commission.DateCreated,
+            PayoutDate: commission.PayoutDate || commission.payoutDate,
+            Status: commission.Status || commission.status || 'Pending',
+            Type: commission.Type || commission.type || 'Sale'
+        })) : [];
+
+        return { success: true, commissions: formattedCommissions };
+
+    } catch (error) {
+        console.error('Error in getAffiliateCommissions:', error.message);
+        const errorInfo = handleError(error, 'Get affiliate commissions');
+        return { success: false, error: errorInfo, commissions: [] };
+    }
+}
+
+async getAffiliateClawbacks(affiliateId, startDate, endDate) {
+    try {
+        console.log('Getting affiliate clawbacks:', affiliateId, startDate, endDate)
+        
+        const formatDateTimeForKeap = (dateStr) => {
+            if (!dateStr) {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                return `${year}${month}${day}T${hours}:${minutes}:${seconds}`;
+            }
+            
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+                throw new Error(`Invalid date: ${dateStr}`);
+            }
+            
+            // Format as YYYYMMDDTHH:MM:SS (same format as your parseXmlRpcDate expects)
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            return `${year}${month}${day}T${hours}:${minutes}:${seconds}`;
+        };
+
+        const startDateFormatted = formatDateTimeForKeap(startDate);
+        const endDateFormatted = formatDateTimeForKeap(endDate);
+        
+        console.log('Keap formatted dates for clawbacks:', startDateFormatted, endDateFormatted);
+        
+        // Get the access token
+        const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+        const privateKey = 'x';
+
+        if (!privateKey) {
+            throw new Error('Access token required for XML-RPC');
+        }
+
+        // Manually construct the XML-RPC request with proper dateTime format
+        const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>APIAffiliateService.affClawbacks</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+    <param>
+      <value><int>${parseInt(affiliateId, 10)}</int></value>
+    </param>
+    <param>
+      <value><dateTime.iso8601>${startDateFormatted}</dateTime.iso8601></value>
+    </param>
+    <param>
+      <value><dateTime.iso8601>${endDateFormatted}</dateTime.iso8601></value>
+    </param>
+  </params>
+</methodCall>`;
+
+        console.log('Manual XML payload for clawbacks:', xmlPayload);
+
+        // Send the request using your HTTP client
+        const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'text/xml'
+            }
+        });
+
+        // Parse the response manually
+        const result = this.parseXmlRpcResponse(response.data);
+        
+        console.log('affClawbacks result:', result);
+
+        // Format the results to match expected structure
+        const formattedClawbacks = Array.isArray(result) ? result.map(clawback => ({
+            Id: clawback.Id || clawback.id,
+            AffiliateId: clawback.AffiliateId || clawback.affiliateId || affiliateId,
+            ContactId: clawback.ContactId || clawback.contactId,
+            OrderId: clawback.OrderId || clawback.orderId,
+            ProductId: clawback.ProductId || clawback.productId,
+            Amount: clawback.Amount || clawback.amount || clawback.ClawbackAmount || 0,
+            Date: clawback.Date || clawback.date || clawback.DateCreated,
+            PayoutDate: clawback.PayoutDate || clawback.payoutDate,
+            Status: clawback.Status || clawback.status || 'Active',
+            Reason: clawback.Reason || clawback.reason || 'Not specified'
+        })) : [];
+
+        return { success: true, clawbacks: formattedClawbacks };
+
+    } catch (error) {
+        console.error('Error in getAffiliateClawbacks:', error.message);
+        const errorInfo = handleError(error, 'Get affiliate clawbacks');
+        return { success: false, error: errorInfo, clawbacks: [] };
+    }
+}
+
+async getAffiliatePayouts(affiliateId, startDate, endDate) {
+    try {
+        console.log('Getting affiliate payouts:', affiliateId, startDate, endDate)
+        
+        const formatDateTimeForKeap = (dateStr) => {
+            if (!dateStr) {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                return `${year}${month}${day}T${hours}:${minutes}:${seconds}`;
+            }
+            
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+                return '20240101T00:00:00';
+            }
+            
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            return `${year}${month}${day}T${hours}:${minutes}:${seconds}`;
+        };
+
+        const startDateFormatted = formatDateTimeForKeap(startDate);
+        const endDateFormatted = formatDateTimeForKeap(endDate);
+        
+        console.log('Keap formatted dates for payouts:', startDateFormatted, endDateFormatted);
+        
+        // Get the access token
+        const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+        const privateKey = 'x';
+
+        if (!privateKey) {
+            throw new Error('Access token required for XML-RPC');
+        }
+        
+        // Create manual XML payload with proper date formatting
+        const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>APIAffiliateService.affPayouts</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+    <param>
+      <value><int>${parseInt(affiliateId, 10)}</int></value>
+    </param>
+    <param>
+      <value><dateTime.iso8601>${startDateFormatted}</dateTime.iso8601></value>
+    </param>
+    <param>
+      <value><dateTime.iso8601>${endDateFormatted}</dateTime.iso8601></value>
+    </param>
+  </params>
+</methodCall>`;
+
+        console.log('Manual XML payload for payouts:', xmlPayload);
+
+        // Send the request using your HTTP client
+        const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'text/xml'
+            }
+        });
+
+        // Parse the response manually
+        const result = this.parseXmlRpcResponse(response.data);
+        
+        console.log('affPayouts result:', result);
+        
+        // Format payouts for frontend consumption
+        const formattedPayouts = Array.isArray(result) ? result.map(payout => ({
+            Id: payout.Id || payout.id,
+            Amount: payout.Amount || payout.amount || 0,
+            Date: payout.Date || payout.date || payout.DateCreated,
+            PayoutDate: payout.PayoutDate || payout.payoutDate,
+            Status: payout.Status || payout.status || 'Processed',
+            Method: payout.Method || payout.method || 'Not specified',
+            ContactId: payout.ContactId || payout.contactId,
+            Type: 'Payout'
+        })) : [];
+
+        return { success: true, payouts: formattedPayouts };
+
+    } catch (error) {
+        console.error('Error in getAffiliatePayouts:', error.message);
+        const errorInfo = handleError(error, 'Get affiliate payouts');
+        return { success: false, error: errorInfo, payouts: [] };
+    }
+}
+
+async getAffiliateRedirectLinks(affiliateId) {
+    try {
+        console.log('Getting affiliate redirect links:', affiliateId)
+        
+        // Get the access token
+        const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+        const privateKey = 'x';
+
+        if (!privateKey) {
+            throw new Error('Access token required for XML-RPC');
+        }
+        
+        // Create manual XML payload
+        const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>AffiliateService.getRedirectLinksForAffiliate</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+    <param>
+      <value><int>${parseInt(affiliateId, 10)}</int></value>
+    </param>
+  </params>
+</methodCall>`;
+
+        console.log('Manual XML payload for redirect links:', xmlPayload);
+
+        // Send the request using your HTTP client
+        const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'text/xml'
+            }
+        });
+
+        // Parse the response manually
+        const result = this.parseXmlRpcResponse(response.data);
+        
+        console.log('getRedirectLinksForAffiliate result:', result);
+
+        // Format redirect links for frontend consumption
+        const formattedLinks = Array.isArray(result) ? result.map(link => ({
+            Id: link.Id || link.id,
+            AffiliateId: link.AffiliateId || link.affiliateId || affiliateId,
+            RedirectUrl: link.RedirectUrl || link.redirectUrl || link.URL || link.url,
+            Name: link.Name || link.name || link.LinkName || link.linkName,
+            TrackingUrl: link.TrackingUrl || link.trackingUrl,
+            Clicks: link.Clicks || link.clicks || 0,
+            Conversions: link.Conversions || link.conversions || 0,
+            DateCreated: link.DateCreated || link.dateCreated,
+            Status: link.Status || link.status || 'Active'
+        })) : [];
+
+        return { success: true, redirectLinks: formattedLinks };
+
+    } catch (error) {
+        console.error('Error in getAffiliateRedirectLinks:', error.message);
+        const errorInfo = handleError(error, 'Get affiliate redirect links');
+        return { success: false, error: errorInfo, redirectLinks: [] };
+    }
+}
         async getAffiliateById(affiliateId) {
         try {
 

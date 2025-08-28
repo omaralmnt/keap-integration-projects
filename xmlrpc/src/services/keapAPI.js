@@ -2060,6 +2060,103 @@ class KeapAPI {
             };
         }
     }
+
+    async getAffiliates(queryParams) {
+        try {
+
+
+            queryParams = cleanParams(queryParams)
+            const result = await this.xmlRpcCall('DataService.query', [
+                'Affiliate',      // table
+                queryParams.limit,          // limit
+                queryParams.page,           // page
+                queryParams.queryData || {},      // queryData
+                queryParams.selectedFields,          // selectedFields
+                queryParams.orderBy,//Field to order by
+                queryParams.ascending//ASCENDING OR DESCENDING (true = asc)
+            ]);
+
+            console.log('Affiliates',result)
+            return {sucess: true, affiliates:result, totalRecords: result.length}
+            // return {
+            //     success: true, contacts: result.map(a => ({
+            //         id: c.Id,
+            //         given_name: c.FirstName,
+            //         family_name: c.LastName,
+            //         email_addresses: [{ email: c.Email }],
+            //         phone_numbers: [{ number: c.Phone1 }],
+            //         date_created: parseXmlRpcDate(c.DateCreated)
+            //     }))
+            // };
+        } catch (error) {
+            console.error('Error in getContacts:', error.message);
+            const errorInfo = handleError(error, 'Get affiliates');
+            return { success: false, error: errorInfo };
+        }
+    }
+    async createAffiliate(affiliateData) {
+        try {
+
+
+            affiliateData = cleanParams(affiliateData)
+            console.log('affdata',affiliateData)
+            const result = await this.xmlRpcCall('DataService.add', [
+                'Affiliate',      // table
+                affiliateData
+            ]);
+
+            console.log('createAffi',result)
+            return {sucess: true, result}
+            // return {
+            //     success: true, contacts: result.map(a => ({
+            //         id: c.Id,
+            //         given_name: c.FirstName,
+            //         family_name: c.LastName,
+            //         email_addresses: [{ email: c.Email }],
+            //         phone_numbers: [{ number: c.Phone1 }],
+            //         date_created: parseXmlRpcDate(c.DateCreated)
+            //     }))
+            // };
+        } catch (error) {
+            console.error('Error in getContacts:', error.message);
+            const errorInfo = handleError(error, 'Get affiliates');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+
+        async getAffiliateById(affiliateId) {
+        try {
+
+
+            const result = await this.xmlRpcCall('DataService.query', [
+                'Affiliate',      // table
+                1,          // limit
+                0,           // page
+                {Id: affiliateId},      // queryData
+                ['Id','AffCode','AffName', 'ContactId','ParentId','Status','NotifyLead',
+                    'NotifySale','LeadCookieFor','DefCommissionType','PayoutType','LeadAmt',
+                    'LeadPercent','SaleAmt', 'SalePercent'],          // selectedFields
+            ]);
+
+            console.log('Affiliates',result)
+            return result[0]
+            // return {
+            //     success: true, contacts: result.map(a => ({
+            //         id: c.Id,
+            //         given_name: c.FirstName,
+            //         family_name: c.LastName,
+            //         email_addresses: [{ email: c.Email }],
+            //         phone_numbers: [{ number: c.Phone1 }],
+            //         date_created: parseXmlRpcDate(c.DateCreated)
+            //     }))
+            // };
+        } catch (error) {
+            console.error('Error in getaffiliates:', error.message);
+            const errorInfo = handleError(error, 'Get affiliates');
+            return { success: false, error: errorInfo };
+        }
+    }
 }
 
 

@@ -33,6 +33,7 @@ import { Opportunities } from './components/opportunities/Opportunities';
 import { Campaigns } from './components/campaigns/Campaigns';
 import { CampaignDetails } from './components/campaigns/CampaignDetails';
 import { Hooks } from './components/resthooks/Hooks';
+import { AffiliateProfile } from './components/affiliates/AffiliateProfile';
 // Componente wrapper para rutas protegidas
 const ProtectedRoute = ({ children }) => {
   return <Layout>{children}</Layout>;
@@ -55,6 +56,11 @@ function App() {
         <Route path='/affiliates' element={
           <ProtectedRoute>
             <Affiliates />
+          </ProtectedRoute>
+        } />
+        <Route path='/affiliates/profile/:affiliate_id' element={
+          <ProtectedRoute>
+            <AffiliateProfile />
           </ProtectedRoute>
         } />
         <Route path='/contacts' element={

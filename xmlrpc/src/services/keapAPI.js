@@ -2511,6 +2511,257 @@ async getAffiliateRedirectLinks(affiliateId) {
         return { success: false, error: errorInfo, redirectLinks: [] };
     }
 }
+
+async getAffiliatePrograms() {
+    try {
+        console.log('Getting affiliate programs')
+        
+        // Get the access token
+        const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+        const privateKey = 'x';
+
+        if (!privateKey) {
+            throw new Error('Access token required for XML-RPC');
+        }
+        
+        // Create manual XML payload
+        const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>AffiliateProgramService.getAffiliatePrograms</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+  </params>
+</methodCall>`;
+
+        console.log('Manual XML payload for affiliate programs:', xmlPayload);
+
+        // Send the request using your HTTP client
+        const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'text/xml'
+            }
+        });
+
+        // Parse the response manually
+        const result = this.parseXmlRpcResponse(response.data);
+        
+        console.log('getAffiliatePrograms result:', result);
+
+        // Format affiliate programs for frontend consumption
+        const formattedPrograms = Array.isArray(result) ? result.map(program => ({
+            Id: program.Id || program.id,
+            Name: program.Name || program.name || 'Untitled Program',
+            Notes: program.Notes || program.notes || '',
+            Priority: program.Priority || program.priority || 1000,
+            AffiliateId: program.AffiliateId || program.affiliateId || 0,
+            DateCreated: program.DateCreated || program.dateCreated,
+            // Legacy support for old structure
+            ProgramName: program.Name || program.ProgramName || program.programName || program.name,
+            Description: program.Notes || program.Description || program.description,
+            Status: program.Status || program.status || 'Active'
+        })) : [];
+
+        return { success: true, programs: formattedPrograms };
+
+    } catch (error) {
+        console.error('Error in getAffiliatePrograms:', error.message);
+        const errorInfo = handleError(error, 'Get affiliate programs');
+        return { success: false, error: errorInfo, programs: [] };
+    }
+}
+
+async getAffiliatesByProgram(programId) {
+    try {
+        console.log('Getting affiliates by program:', programId)
+        
+        // Get the access token
+        const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+        const privateKey = 'x';
+
+        if (!privateKey) {
+            throw new Error('Access token required for XML-RPC');
+        }
+        
+        // Create manual XML payload
+        const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>AffiliateProgramService.getAffiliatesByProgram</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+    <param>
+      <value><string>${programId}</string></value>
+    </param>
+  </params>
+</methodCall>`;
+
+        console.log('Manual XML payload for affiliates by program:', xmlPayload);
+
+        // Send the request using your HTTP client
+        const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'text/xml'
+            }
+        });
+
+        // Parse the response manually
+        const result = this.parseXmlRpcResponse(response.data);
+        
+        console.log('getAffiliatesByProgram result:', result);
+
+        // Format affiliates for frontend consumption
+        const formattedAffiliates = Array.isArray(result) ? result.map(affiliate => ({
+            Id: affiliate.Id || affiliate.id,
+            AffCode: affiliate.AffCode || affiliate.affCode || affiliate.Code || affiliate.code,
+            AffName: affiliate.AffName || affiliate.affName || affiliate.Name || affiliate.name,
+            ContactId: affiliate.ContactId || affiliate.contactId,
+            ParentId: affiliate.ParentId || affiliate.parentId,
+            Status: affiliate.Status || affiliate.status,
+            NotifyLead: affiliate.NotifyLead || affiliate.notifyLead,
+            NotifySale: affiliate.NotifySale || affiliate.notifySale,
+            LeadCookieFor: affiliate.LeadCookieFor || affiliate.leadCookieFor,
+            DefCommissionType: affiliate.DefCommissionType || affiliate.defCommissionType,
+            PayoutType: affiliate.PayoutType || affiliate.payoutType,
+            LeadAmt: affiliate.LeadAmt || affiliate.leadAmt || 0,
+            LeadPercent: affiliate.LeadPercent || affiliate.leadPercent || 0,
+            SaleAmt: affiliate.SaleAmt || affiliate.saleAmt || 0,
+            SalePercent: affiliate.SalePercent || affiliate.salePercent || 0
+        })) : [];
+
+        return { success: true, affiliates: formattedAffiliates };
+
+    } catch (error) {
+        console.error('Error in getAffiliatesByProgram:', error.message);
+        const errorInfo = handleError(error, 'Get affiliates by program');
+        return { success: false, error: errorInfo, affiliates: [] };
+    }
+}
+
+async getProgramsForAffiliate(affiliateId) {
+    try {
+        console.log('Getting programs for affiliate:', affiliateId)
+        
+        // Get the access token
+        const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+        const privateKey = 'x';
+
+        if (!privateKey) {
+            throw new Error('Access token required for XML-RPC');
+        }
+        
+        // Create manual XML payload
+        const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>AffiliateProgramService.getProgramsForAffiliate</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+    <param>
+      <value><i4>${parseInt(affiliateId, 10)}</i4></value>
+    </param>
+  </params>
+</methodCall>`;
+
+        console.log('Manual XML payload for programs for affiliate:', xmlPayload);
+
+        // Send the request using your HTTP client
+        const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'text/xml'
+            }
+        });
+
+        // Parse the response manually
+        const result = this.parseXmlRpcResponse(response.data);
+        
+        console.log('getProgramsForAffiliate result:', result);
+
+        // Format programs for frontend consumption
+        const formattedPrograms = Array.isArray(result) ? result.map(program => ({
+            Id: program.Id || program.id,
+            Name: program.Name || program.name || 'Untitled Program',
+            Notes: program.Notes || program.notes || '',
+            Priority: program.Priority || program.priority || 1000,
+            AffiliateId: program.AffiliateId || program.affiliateId || affiliateId,
+            DateCreated: program.DateCreated || program.dateCreated,
+            Status: program.Status || program.status || 'Active'
+        })) : [];
+
+        return { success: true, programs: formattedPrograms };
+
+    } catch (error) {
+        console.error('Error in getProgramsForAffiliate:', error.message);
+        const errorInfo = handleError(error, 'Get programs for affiliate');
+        return { success: false, error: errorInfo, programs: [] };
+    }
+}
+
+async getResourcesForAffiliateProgram(programId) {
+    try {
+        console.log('Getting resources for affiliate program:', programId)
+        
+        // Get the access token
+        const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+        const privateKey = 'x';
+
+        if (!privateKey) {
+            throw new Error('Access token required for XML-RPC');
+        }
+        
+        // Create manual XML payload
+        const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>AffiliateProgramService.getResourcesForAffiliateProgram</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+    <param>
+      <value><int>${parseInt(programId, 10)}</int></value>
+    </param>
+  </params>
+</methodCall>`;
+
+        console.log('Manual XML payload for program resources:', xmlPayload);
+
+        // Send the request using your HTTP client
+        const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'text/xml'
+            }
+        });
+
+        // Parse the response manually
+        const result = this.parseXmlRpcResponse(response.data);
+        
+        console.log('getResourcesForAffiliateProgram result:', result);
+
+        // Format resources for frontend consumption
+        const formattedResources = Array.isArray(result) ? result.map(resource => ({
+            Id: resource.Id || resource.id,
+            Name: resource.Name || resource.name || 'Untitled Resource',
+            Description: resource.Description || resource.description || '',
+            URL: resource.URL || resource.url || resource.Url,
+            Type: resource.Type || resource.type || 'Unknown',
+            FileSize: resource.FileSize || resource.fileSize,
+            DateCreated: resource.DateCreated || resource.dateCreated,
+            DateModified: resource.DateModified || resource.dateModified,
+            ProgramId: resource.ProgramId || resource.programId || programId,
+            Status: resource.Status || resource.status || 'Active'
+        })) : [];
+
+        return { success: true, resources: formattedResources };
+
+    } catch (error) {
+        console.error('Error in getResourcesForAffiliateProgram:', error.message);
+        const errorInfo = handleError(error, 'Get resources for affiliate program');
+        return { success: false, error: errorInfo, resources: [] };
+    }
+}
         async getAffiliateById(affiliateId) {
         try {
 
@@ -2541,6 +2792,256 @@ async getAffiliateRedirectLinks(affiliateId) {
             console.error('Error in getaffiliates:', error.message);
             const errorInfo = handleError(error, 'Get affiliates');
             return { success: false, error: errorInfo };
+        }
+    }
+
+    async getAffiliateSummary(affiliateIds, startDate, endDate) {
+        try {
+            console.log('Getting affiliate summary:', affiliateIds, startDate, endDate)
+            
+            const formatDateTimeForKeap = (dateStr) => {
+                if (!dateStr) {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    const seconds = String(now.getSeconds()).padStart(2, '0');
+                    return `${year}${month}${day}T${hours}:${minutes}:${seconds}`;
+                }
+                
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) {
+                    throw new Error(`Invalid date: ${dateStr}`);
+                }
+                
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                
+                return `${year}${month}${day}T${hours}:${minutes}:${seconds}`;
+            };
+
+            const startDateFormatted = formatDateTimeForKeap(startDate);
+            const endDateFormatted = formatDateTimeForKeap(endDate);
+            
+            // Get the access token
+            const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+            const privateKey = 'x';
+
+            if (!privateKey) {
+                throw new Error('Access token required for XML-RPC');
+            }
+            
+            // Ensure affiliateIds is an array
+            const affiliateIdArray = Array.isArray(affiliateIds) ? affiliateIds : [affiliateIds];
+            
+            // Create manual XML payload
+            const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>APIAffiliateService.affSummary</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+    <param>
+      <value><array>
+        <data>
+          ${affiliateIdArray.map(id => `<value><int>${parseInt(id, 10)}</int></value>`).join('\n          ')}
+        </data>
+      </array></value>
+    </param>
+    <param>
+      <value><dateTime.iso8601>${startDateFormatted}</dateTime.iso8601></value>
+    </param>
+    <param>
+      <value><dateTime.iso8601>${endDateFormatted}</dateTime.iso8601></value>
+    </param>
+  </params>
+</methodCall>`;
+
+            console.log('Manual XML payload for affiliate summary:', xmlPayload);
+
+            // Send the request using your HTTP client
+            const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+                headers: {
+                    'Content-Type': 'text/xml'
+                }
+            });
+
+            // Parse the response manually
+            const result = this.parseXmlRpcResponse(response.data);
+            
+            console.log('affSummary result:', result);
+            
+            return { success: true, summary: result };
+        } catch (error) {
+            console.error('Error in getAffiliateSummary:', error.message);
+            const errorInfo = handleError(error, 'Get affiliate summary');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getAffiliateRunningTotals(affiliateIds) {
+        try {
+            console.log('Getting affiliate running totals:', affiliateIds)
+            
+            // Get the access token
+            const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+            const privateKey = 'x';
+
+            if (!privateKey) {
+                throw new Error('Access token required for XML-RPC');
+            }
+            
+            // Ensure affiliateIds is an array
+            const affiliateIdArray = Array.isArray(affiliateIds) ? affiliateIds : [affiliateIds];
+            
+            // Create manual XML payload
+            const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>APIAffiliateService.affRunningTotals</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+    <param>
+      <value><array>
+        <data>
+          ${affiliateIdArray.map(id => `<value><int>${parseInt(id, 10)}</int></value>`).join('\n          ')}
+        </data>
+      </array></value>
+    </param>
+  </params>
+</methodCall>`;
+
+            console.log('Manual XML payload for affiliate running totals:', xmlPayload);
+
+            // Send the request using your HTTP client
+            const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+                headers: {
+                    'Content-Type': 'text/xml'
+                }
+            });
+
+            // Parse the response manually
+            const result = this.parseXmlRpcResponse(response.data);
+            
+            console.log('affRunningTotals result:', result);
+            
+            return { success: true, totals: result };
+        } catch (error) {
+            console.error('Error in getAffiliateRunningTotals:', error.message);
+            const errorInfo = handleError(error, 'Get affiliate running totals');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getOrdersFromJob(queryParams = {}) {
+        try {
+            const limit = queryParams.limit || 25;
+            const offset = queryParams.offset || 0;
+            const page = Math.floor(offset / limit);
+            
+            console.log('Getting orders from Invoice table', { limit, offset, page, queryParams });
+
+            // Build query data for Invoice table
+            const invoiceQueryData = {};
+            if (queryParams.contact_id) invoiceQueryData.ContactId = parseInt(queryParams.contact_id);
+            if (queryParams.order_status !== undefined) invoiceQueryData.PayStatus = parseInt(queryParams.order_status);
+
+            // Core invoice fields to avoid duplicates - use known working fields
+            const invoiceFields = [
+                'Id',
+                'ContactId', 
+                'TotalDue',
+                'TotalPaid',
+                'InvoiceTotal',
+                'PayStatus',
+                'DateCreated',
+                'InvoiceType',
+                'JobId'
+            ];
+
+            const orderField = queryParams.order === 'order_date' ? 'DateCreated' : 'Id';
+            const orderDirection = queryParams.order_direction === 'asc' ? true : false;
+
+            // Query Invoice table for actual order data
+            const invoiceResults = await this.xmlRpcCall('DataService.query', [
+                'Invoice',
+                limit,
+                page,
+                invoiceQueryData,
+                invoiceFields,
+                orderField,
+                orderDirection
+            ]);
+
+            console.log('Invoice results:', invoiceResults);
+
+            if (!invoiceResults || invoiceResults.length === 0) {
+                return {
+                    success: true,
+                    orders: [],
+                    next: null,
+                    previous: offset > 0 ? Math.max(0, offset - limit) : null,
+                    total: 0
+                };
+            }
+
+            // Deduplicate invoices by ID (in case XML-RPC returns duplicates)
+            const uniqueInvoices = invoiceResults.reduce((unique, invoice) => {
+                const exists = unique.find(item => item.Id === invoice.Id);
+                if (!exists) {
+                    unique.push(invoice);
+                }
+                return unique;
+            }, []);
+
+            console.log(`Removed ${invoiceResults.length - uniqueInvoices.length} duplicate invoices`);
+
+            // Transform Invoice data into order format
+            const orders = uniqueInvoices.map(invoice => {
+                return {
+                    id: invoice.Id,
+                    invoice_id: invoice.Id,
+                    contact_id: invoice.ContactId,
+                    invoice_total: parseFloat(invoice.InvoiceTotal) || 0,
+                    total_due: parseFloat(invoice.TotalDue) || 0,
+                    total_paid: parseFloat(invoice.TotalPaid) || 0,
+                    pay_status: invoice.PayStatus,
+                    date_created: invoice.DateCreated,
+                    invoice_type: invoice.InvoiceType,
+                    job_id: invoice.JobId,
+                    
+                    // Additional fields for compatibility
+                    status: invoice.PayStatus === 1 ? 'PAID' : 'UNPAID',
+                    order_type: invoice.InvoiceType || 'Invoice'
+                };
+            });
+
+            console.log('Processed orders:', orders);
+
+            return {
+                success: true,
+                orders: orders,
+                next: orders.length === limit ? offset + limit : null,
+                previous: offset > 0 ? Math.max(0, offset - limit) : null,
+                total: orders.length
+            };
+
+        } catch (error) {
+            console.error('Error in getOrdersFromJob:', error.message);
+            const errorInfo = handleError(error, 'Get orders from Invoice table');
+            return { 
+                success: false, 
+                error: errorInfo,
+                orders: []
+            };
         }
     }
 }

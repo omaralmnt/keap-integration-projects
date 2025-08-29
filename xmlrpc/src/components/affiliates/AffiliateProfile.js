@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import keapAPI from '../../services/keapAPI';
 import { toast } from 'react-toastify';
+import { formatKeapDate } from '../../utils/dateUtils';
 
 // Input component
 const Input = ({ 
@@ -66,6 +67,15 @@ export function AffiliateProfile() {
   const [redirectLinks, setRedirectLinks] = useState([]);
   const [loadingRedirectLinks, setLoadingRedirectLinks] = useState(false);
 
+  // Programs states
+  const [programs, setPrograms] = useState([]);
+  const [loadingPrograms, setLoadingPrograms] = useState(false);
+
+  // Financial data states
+  const [financialSummary, setFinancialSummary] = useState(null);
+  const [runningTotals, setRunningTotals] = useState(null);
+  const [loadingFinancials, setLoadingFinancials] = useState(false);
+
   useEffect(() => {
     fetchAffiliateDetails();
   }, [affiliate_id]);
@@ -76,6 +86,8 @@ export function AffiliateProfile() {
       fetchClawbacks();
       fetchPayouts();
       fetchRedirectLinks();
+      fetchPrograms();
+      fetchFinancialData();
     }
   }, [affiliate_id]);
 
@@ -308,6 +320,74 @@ export function AffiliateProfile() {
     fetchRedirectLinks(true); // Show toast when refreshing manually
   };
 
+  const fetchPrograms = async (showToast = false) => {
+    try {
+      setLoadingPrograms(true);
+      
+      const result = await keapAPI.getProgramsForAffiliate(affiliate_id);
+      
+      if (result.success) {
+        setPrograms(result.programs || []);
+        if (showToast) {
+          toast.success(`Found ${result.programs?.length || 0} programs`);
+        }
+      } else {
+        throw new Error(result.error?.message || 'Failed to fetch programs');
+      }
+      
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+      toast.error('Error fetching programs. Please try again.');
+      setPrograms([]);
+    } finally {
+      setLoadingPrograms(false);
+    }
+  };
+
+  const handleRefreshPrograms = () => {
+    fetchPrograms(true); // Show toast when refreshing manually
+  };
+
+  const fetchFinancialData = async (showToast = false) => {
+    try {
+      setLoadingFinancials(true);
+      
+      // Get financial data with current date range
+      const today = new Date().toISOString().split('T')[0];
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      // Fetch both summary and running totals
+      const [summaryResult, totalsResult] = await Promise.all([
+        keapAPI.getAffiliateSummary([parseInt(affiliate_id)], thirtyDaysAgo, today),
+        keapAPI.getAffiliateRunningTotals([parseInt(affiliate_id)])
+      ]);
+      
+      if (summaryResult.success && summaryResult.summary?.length > 0) {
+        setFinancialSummary(summaryResult.summary[0]);
+      }
+      
+      if (totalsResult.success && totalsResult.totals?.length > 0) {
+        setRunningTotals(totalsResult.totals[0]);
+      }
+      
+      if (showToast) {
+        toast.success('Financial data updated successfully');
+      }
+      
+    } catch (error) {
+      console.error('Error fetching financial data:', error);
+      if (showToast) {
+        toast.error('Error fetching financial data. Please try again.');
+      }
+    } finally {
+      setLoadingFinancials(false);
+    }
+  };
+
+  const handleRefreshFinancials = () => {
+    fetchFinancialData(true);
+  };
+
   // Helper functions for display formatting
   const getStatusLabel = (statusValue) => {
     return statusValue === 1 ? 'Active' : 'Inactive';
@@ -438,6 +518,136 @@ export function AffiliateProfile() {
               Edit Affiliate
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* Financial Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Running Totals Card */}
+        <div className="bg-gradient-to-br from-green-50 to-green-100 shadow rounded-lg overflow-hidden border border-green-200">
+          <div className="px-4 py-3 border-b border-green-200 bg-green-100">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-green-900">Lifetime Earnings</h3>
+              <svg className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+            </div>
+          </div>
+          <div className="p-4">
+            {loadingFinancials ? (
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+              </div>
+            ) : (
+              <dl className="space-y-2">
+                <div>
+                  <dt className="text-xs text-green-700">Amount Earned:</dt>
+                  <dd className="text-lg font-semibold text-green-900">
+                    {formatCurrency(runningTotals?.AmountEarned || 0)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-green-700">Running Balance:</dt>
+                  <dd className="text-sm font-medium text-green-800">
+                    {formatCurrency(runningTotals?.RunningBalance || 0)}
+                  </dd>
+                </div>
+              </dl>
+            )}
+          </div>
+        </div>
+
+        {/* Payments Card */}
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 shadow rounded-lg overflow-hidden border border-blue-200">
+          <div className="px-4 py-3 border-b border-blue-200 bg-blue-100">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-blue-900">Payments Made</h3>
+              <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="p-4">
+            {loadingFinancials ? (
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-900">
+                  {formatCurrency(runningTotals?.Payments || 0)}
+                </div>
+                <p className="text-xs text-blue-700 mt-1">Total paid out</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Clawbacks Card */}
+        <div className="bg-gradient-to-br from-red-50 to-red-100 shadow rounded-lg overflow-hidden border border-red-200">
+          <div className="px-4 py-3 border-b border-red-200 bg-red-100">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-red-900">Clawbacks</h3>
+              <svg className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="p-4">
+            {loadingFinancials ? (
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
+              </div>
+            ) : (
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-900">
+                  {formatCurrency(runningTotals?.Clawbacks || 0)}
+                </div>
+                <p className="text-xs text-red-700 mt-1">Total clawed back</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 30-Day Summary Card */}
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 shadow rounded-lg overflow-hidden border border-purple-200">
+          <div className="px-4 py-3 border-b border-purple-200 bg-purple-100">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-purple-900">30-Day Summary</h3>
+              <button
+                onClick={handleRefreshFinancials}
+                disabled={loadingFinancials}
+                className="text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                title="Refresh financial data"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className="p-4">
+            {loadingFinancials ? (
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+              </div>
+            ) : (
+              <dl className="space-y-2">
+                <div>
+                  <dt className="text-xs text-purple-700">Amount Earned:</dt>
+                  <dd className="text-lg font-semibold text-purple-900">
+                    {formatCurrency(financialSummary?.AmountEarned || 0)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-purple-700">Balance:</dt>
+                  <dd className="text-sm font-medium text-purple-800">
+                    {formatCurrency(financialSummary?.Balance || 0)}
+                  </dd>
+                </div>
+              </dl>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1305,6 +1515,104 @@ export function AffiliateProfile() {
                     Total conversions: {redirectLinks.reduce((sum, l) => sum + (parseInt(l.Conversions) || 0), 0)}
                   </span>
                 </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+      {/* Programs Section */}
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900">Affiliate Programs</h3>
+            <Button 
+              variant="outline" 
+              onClick={handleRefreshPrograms}
+              disabled={loadingPrograms}
+            >
+              {loadingPrograms ? 'Loading...' : 'Refresh'}
+            </Button>
+          </div>
+        </div>
+          
+          <div className="px-6 py-4">
+            {loadingPrograms ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                <span className="ml-2 text-sm text-gray-500">Loading programs...</span>
+              </div>
+            ) : programs.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-400 mb-2">
+                  <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <h3 className="text-sm font-medium text-gray-900 mb-1">No programs found</h3>
+                <p className="text-sm text-gray-500">
+                  This affiliate is not currently assigned to any programs.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {programs.map((program, index) => (
+                  <div key={program.Id || index} className="py-4 hover:bg-gray-50 px-4 -mx-4 rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <h4 className="text-lg font-medium text-gray-900">
+                            {program.Name || 'Untitled Program'}
+                          </h4>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            program.Status === 'Active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {program.Status || 'Active'}
+                          </span>
+                        </div>
+                        
+                        {program.Notes && (
+                          <p className="mt-2 text-sm text-gray-600">
+                            {program.Notes}
+                          </p>
+                        )}
+                        
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div>
+                            <dt className="text-xs font-medium text-gray-500 uppercase">Program ID</dt>
+                            <dd className="mt-1 text-sm text-gray-900">{program.Id}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs font-medium text-gray-500 uppercase">Priority</dt>
+                            <dd className="mt-1 text-sm text-gray-900">{program.Priority || 1000}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs font-medium text-gray-500 uppercase">Date Created</dt>
+                            <dd className="mt-1 text-sm text-gray-900">
+                              {formatKeapDate(program.DateCreated) || 'N/A'}
+                            </dd>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex space-x-2 ml-6">
+                        <Button variant="outline" size="sm" disabled>
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {programs.length > 0 && (
+              <div className="mt-4 flex justify-between items-center text-sm text-gray-500">
+                <span>Total programs: {programs.length}</span>
+                <span className="font-medium text-orange-600">
+                  Active programs: {programs.filter(p => p.Status === 'Active').length}
+                </span>
               </div>
             )}
           </div>

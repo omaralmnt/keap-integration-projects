@@ -100,6 +100,11 @@ export function Sidebar() {
           name: 'Affiliates',
           href: '/affiliates',
           icon: <Share2 className="w-4 h-4" />
+        },
+        {
+          name: 'Affiliate Programs',
+          href: '/affiliate-programs',
+          icon: <CreditCard className="w-4 h-4" />
         }
       ]
     },

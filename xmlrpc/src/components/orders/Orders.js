@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import keapAPI from '../../services/keapAPI';
 import { useNavigate } from 'react-router-dom';
+import { formatKeapDate } from '../../utils/dateUtils';
 
 // Input component
 const Input = ({ 
@@ -34,63 +35,82 @@ export function Orders() {
   // Search parameters
   const [contactId, setContactId] = useState('');
   const [productId, setProductId] = useState('');
-  const [limit, setLimit] = useState(3);
+  const [limit, setLimit] = useState(25);
   const [offset, setOffset] = useState(0);
   const [order, setOrder] = useState('order_date');
-  const [paid, setPaid] = useState('');
-  const [since, setSince] = useState('');
-  const [until, setUntil] = useState('');
+  const [orderStatus, setOrderStatus] = useState('');
+  const [jobStatus, setJobStatus] = useState('');
+  const [orderType, setOrderType] = useState('');
   const [previous, setPrevious] = useState('');
   const [next, setNext] = useState('');
 
+  // Load orders on component mount
+  useEffect(() => {
+    handleSearch();
+  }, []);
+
   const handlePagination = async (action) => {
-    let response;
+    let newOffset;
     if (action === 'next') {
-      response = await keapAPI.getOrdersPaginated(next);
-      setOffset(Number(offset) + Number(limit));
+      newOffset = Number(offset) + Number(limit);
     } else {
-      response = await keapAPI.getOrdersPaginated(previous);
-      const addedOffset = Number(offset) - Number(limit);
-      if (addedOffset > -1) {
-        setOffset(addedOffset);
-      }
+      newOffset = Math.max(0, Number(offset) - Number(limit));
     }
-    setOrders(response.orders);
-    setNext(response.next);
-    setPrevious(response.previous);
+    
+    setOffset(newOffset);
+    
+    // Re-run search with new offset
+    const queryParams = buildQueryParams(newOffset);
+    const response = await keapAPI.getOrdersFromJob(queryParams);
+    
+    if (response.success) {
+      setOrders(response.orders);
+      setNext(response.next);
+      setPrevious(response.previous);
+    }
+  };
+
+  const buildQueryParams = (currentOffset = offset) => {
+    const queryParams = {
+      contact_id: contactId || undefined,
+      product_id: productId || undefined,
+      limit,
+      offset: currentOffset,
+      order,
+      order_direction: 'desc', // Most recent first
+      order_status: orderStatus !== '' ? parseInt(orderStatus) : undefined,
+      job_status: jobStatus || undefined,
+      order_type: orderType || undefined
+    };
+
+    // Remove undefined values
+    Object.keys(queryParams).forEach(key => 
+      queryParams[key] === undefined && delete queryParams[key]
+    );
+
+    return queryParams;
   };
 
   const handleSearch = async () => {
     try {
       setLoading(true);
+      setOffset(0); // Reset to first page on new search
 
-      const formattedSince = formatDateForAPI(since);
-      const formattedUntil = formatDateForAPI(until);
-
-      const queryParams = {
-        contact_id: contactId || undefined,
-        product_id: productId || undefined,
-        limit,
-        offset,
-        order,
-        paid: paid !== '' ? paid === 'true' : undefined,
-        since: formattedSince,
-        until: formattedUntil
-      };
-
-      // Remove undefined values
-      Object.keys(queryParams).forEach(key => 
-        queryParams[key] === undefined && delete queryParams[key]
-      );
-
-      const data = await keapAPI.getOrders(queryParams);
-      console.log(data);
-      setOrders(data.orders);
-      setPrevious(data.previous);
-      setNext(data.next);
+      const queryParams = buildQueryParams(0);
+      const data = await keapAPI.getOrdersFromJob(queryParams);
+      
+      if (data.success) {
+        setOrders(data.orders);
+        setPrevious(data.previous);
+        setNext(data.next);
+      } else {
+        console.error('Error fetching orders:', data.error);
+        setOrders([]);
+      }
 
     } catch (error) {
-      console.log(error);   
+      console.error('Error in handleSearch:', error);   
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -118,12 +138,51 @@ export function Orders() {
 
   const getStatusColor = (status) => {
     const statusColors = {
+      'IN_FULFILLMENT': 'bg-green-100 text-green-800',
+      'PENDING_PAYMENT': 'bg-red-100 text-red-800',
       'PAID': 'bg-green-100 text-green-800',
-      'UNPAID': 'bg-red-100 text-red-800',
-      'PARTIAL': 'bg-yellow-100 text-yellow-800',
-      'DRAFT': 'bg-gray-100 text-gray-800'
+      'UNPAID': 'bg-red-100 text-red-800'
     };
     return statusColors[status?.toUpperCase()] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      'IN_FULFILLMENT': 'In Fulfillment',
+      'PENDING_PAYMENT': 'Pending Payment'
+    };
+    return labels[status] || status || 'Unknown';
+  };
+
+  const getOrderTypeColor = (type) => {
+    const typeColors = {
+      'Online': 'bg-blue-100 text-blue-800',
+      'Offline': 'bg-purple-100 text-purple-800',
+      'Invoice': 'bg-green-100 text-green-800',
+      'Order': 'bg-indigo-100 text-indigo-800',
+      'Subscription': 'bg-yellow-100 text-yellow-800'
+    };
+    return typeColors[type] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getPaymentStatusColor = (payStatus) => {
+    const statusColors = {
+      0: 'bg-red-100 text-red-800',     // Unpaid
+      1: 'bg-green-100 text-green-800', // Paid
+      2: 'bg-yellow-100 text-yellow-800', // Partially Paid
+      3: 'bg-blue-100 text-blue-800'    // Overpaid
+    };
+    return statusColors[payStatus] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getPaymentStatusLabel = (payStatus) => {
+    const labels = {
+      0: 'Unpaid',
+      1: 'Paid',
+      2: 'Partial',
+      3: 'Overpaid'
+    };
+    return labels[payStatus] || 'Unknown';
   };
 
   return (
@@ -132,7 +191,7 @@ export function Orders() {
 
       {/* Search Form */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <Input
             placeholder="Contact ID"
             value={contactId}
@@ -144,26 +203,38 @@ export function Orders() {
             onChange={(e) => setProductId(e.target.value)}
           />
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Paid Status</label>
+            <label className="block text-xs text-gray-500 mb-1">Order Status</label>
             <select
-              value={paid}
-              onChange={(e) => setPaid(e.target.value)}
+              value={orderStatus}
+              onChange={(e) => setOrderStatus(e.target.value)}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             >
               <option value="">All</option>
-              <option value="true">Paid</option>
-              <option value="false">Unpaid</option>
+              <option value="0">In Fulfillment (Paid)</option>
+              <option value="1">Pending Payment (Unpaid)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Order Type</label>
+            <select
+              value={orderType}
+              onChange={(e) => setOrderType(e.target.value)}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            >
+              <option value="">All</option>
+              <option value="Online">Online</option>
+              <option value="Offline">Offline</option>
             </select>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Limit</label>
             <Input
               type="number"
               value={limit}
-              onChange={(e) => setLimit(parseInt(e.target.value) || 3)}
+              onChange={(e) => setLimit(parseInt(e.target.value) || 25)}
               min="1"
               max="1000"
             />
@@ -186,28 +257,20 @@ export function Orders() {
             >
               <option value="order_date">Order Date</option>
               <option value="update_date">Update Date</option>
+              <option value="due_date">Due Date</option>
+              <option value="start_date">Start Date</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Job Status</label>
+            <Input
+              placeholder="e.g., Active, Complete"
+              value={jobStatus}
+              onChange={(e) => setJobStatus(e.target.value)}
+            />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Since</label>
-            <Input
-              type="datetime-local"
-              value={since}
-              onChange={(e) => setSince(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Until</label>
-            <Input
-              type="datetime-local"
-              value={until}
-              onChange={(e) => setUntil(e.target.value)}
-            />
-          </div>
-        </div>
 
         <div className="flex space-x-3">
           <Button onClick={handleSearch} disabled={loading}>
@@ -241,45 +304,51 @@ export function Orders() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice #</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice ID</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paid</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date Created</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {orders.map((order) => (
-                  <tr key={order.id}>
-                    <td className="px-4 py-4 text-sm text-gray-900">{order.id}</td>
-                    <td className="px-4 py-4 text-sm text-gray-900">{order.invoice_number || 'N/A'}</td>
+                  <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-4 text-sm font-medium text-gray-900">
+                      <span className="text-blue-600 font-medium">#{order.id}</span>
+                    </td>
                     <td className="px-4 py-4 text-sm text-gray-900">
-                      {order.contact ? 
-                        `${order.contact.first_name || ''} ${order.contact.last_name || ''}`.trim() || 
-                        order.contact.email || 
-                        `Contact #${order.contact.id}` 
-                        : 'N/A'}
+                      {order.contact_id ? (
+                        <span className="text-blue-600 font-medium">#{order.contact_id}</span>
+                      ) : (
+                        <span className="text-gray-400">N/A</span>
+                      )}
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900 font-medium">
-                      {formatCurrency(order.total)}
+                    <td className="px-4 py-4 text-sm font-semibold text-gray-900">
+                      {formatCurrency(order.invoice_total)}
                     </td>
-                    <td className="px-4 py-4 text-sm text-green-600 font-medium">
+                    <td className="px-4 py-4 text-sm font-semibold text-green-600">
                       {formatCurrency(order.total_paid)}
                     </td>
-                    <td className="px-4 py-4 text-sm text-red-600 font-medium">
+                    <td className="px-4 py-4 text-sm font-semibold text-red-600">
                       {formatCurrency(order.total_due)}
                     </td>
                     <td className="px-4 py-4 text-sm">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                        {order.status || 'Unknown'}
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(order.pay_status)}`}>
+                        {getPaymentStatusLabel(order.pay_status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-sm text-gray-900">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getOrderTypeColor(order.invoice_type)}`}>
+                        {order.invoice_type || 'Invoice'}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-sm text-gray-500">
-                      {order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A'}
+                      {formatKeapDate(order.date_created) || 'N/A'}
                     </td>
                     <td className="px-4 py-4 text-sm text-gray-900">
                       <Button 

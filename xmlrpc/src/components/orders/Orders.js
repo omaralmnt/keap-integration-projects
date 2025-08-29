@@ -3,6 +3,9 @@ import { Button } from '../ui/Button';
 import keapAPI from '../../services/keapAPI';
 import { useNavigate } from 'react-router-dom';
 import { formatKeapDate } from '../../utils/dateUtils';
+import { toast } from 'react-toastify';
+import ContactSelector from '../misc/ContactSelector';
+import ProductSelector from '../misc/ProductSelector';
 
 // Input component
 const Input = ({ 
@@ -43,6 +46,29 @@ export function Orders() {
   const [orderType, setOrderType] = useState('');
   const [previous, setPrevious] = useState('');
   const [next, setNext] = useState('');
+  
+  // Create order modal
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [orderForm, setOrderForm] = useState({
+    contactId: '',
+    cardId: '0',
+    planId: '0',
+    productIds: [''],
+    subscriptionIds: [''],
+    processSpecials: false,
+    promoCodes: [''],
+    leadAffiliateId: '0',
+    saleAffiliateId: '0'
+  });
+  
+  // Contact selector
+  const [showContactSelector, setShowContactSelector] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
+  
+  // Product selector
+  const [showProductSelector, setShowProductSelector] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState([]);
 
   // Load orders on component mount
   useEffect(() => {
@@ -126,7 +152,80 @@ export function Orders() {
   };
 
   const createOrder = () => {
-    navigate('/orders/create');
+    setShowCreateModal(true);
+  };
+
+  const handleCreateOrder = async () => {
+    try {
+      setCreateLoading(true);
+      
+      // Filter out empty values and include selected products
+      const cleanedData = {
+        ...orderForm,
+        contactId: selectedContact?.id?.toString() || orderForm.contactId,
+        productIds: selectedProducts.length > 0 
+          ? selectedProducts.map(p => p.id.toString())
+          : orderForm.productIds.filter(id => id.trim() !== ''),
+        subscriptionIds: orderForm.subscriptionIds.filter(id => id.trim() !== ''),
+        promoCodes: orderForm.promoCodes.filter(code => code.trim() !== '')
+      };
+
+      // Validate required fields
+      if (!cleanedData.contactId) {
+        toast.error('Contact is required');
+        return;
+      }
+
+      if (cleanedData.productIds.length === 0 && cleanedData.subscriptionIds.length === 0) {
+        toast.error('At least one product or subscription is required');
+        return;
+      }
+
+      const result = await keapAPI.createOrder(cleanedData);
+      
+      if (result.success) {
+        toast.success('Order created successfully!');
+        setShowCreateModal(false);
+        setOrderForm({
+          contactId: '',
+          cardId: '0',
+          planId: '0',
+          productIds: [''],
+          subscriptionIds: [''],
+          processSpecials: false,
+          promoCodes: [''],
+          leadAffiliateId: '0',
+          saleAffiliateId: '0'
+        });
+        setSelectedContact(null);
+        setSelectedProducts([]);
+        handleSearch(); // Refresh orders list
+      } else {
+        toast.error(result.error?.message || 'Failed to create order');
+      }
+    } catch (error) {
+      toast.error('Error creating order: ' + error.message);
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const handleContactSelect = (contact) => {
+    setSelectedContact(contact);
+    setOrderForm({ ...orderForm, contactId: contact.id.toString() });
+    setShowContactSelector(false);
+  };
+
+  const handleProductSelect = (product) => {
+    // Check if product is already selected
+    if (!selectedProducts.find(p => p.id === product.id)) {
+      setSelectedProducts(prev => [...prev, product]);
+    }
+    setShowProductSelector(false);
+  };
+
+  const removeProduct = (productId) => {
+    setSelectedProducts(prev => prev.filter(p => p.id !== productId));
   };
 
   const formatCurrency = (amount) => {
@@ -393,6 +492,299 @@ export function Orders() {
           </div>
         )}
       </div>
+
+      {/* Create Order Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Create New Order</h3>
+              <p className="mt-1 text-sm text-gray-500">Fill in the details to create a new order</p>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Contact *</label>
+                  <div className="mt-1">
+                    {selectedContact ? (
+                      <div className="flex items-center justify-between p-3 border border-gray-300 rounded-md bg-gray-50">
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {[selectedContact.given_name, selectedContact.family_name].filter(Boolean).join(' ') || selectedContact.preferred_name || 'No Name'}
+                          </div>
+                          <div className="text-sm text-gray-500">ID: {selectedContact.id}</div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowContactSelector(true)}
+                        >
+                          Change
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowContactSelector(true)}
+                        className="w-full justify-center"
+                      >
+                        Select Contact
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Credit Card ID</label>
+                  <Input
+                    type="number"
+                    value={orderForm.cardId}
+                    onChange={(e) => setOrderForm({ ...orderForm, cardId: e.target.value })}
+                    placeholder="0 to skip charging"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Payment Plan ID</label>
+                  <Input
+                    type="number"
+                    value={orderForm.planId}
+                    onChange={(e) => setOrderForm({ ...orderForm, planId: e.target.value })}
+                    placeholder="0 for default plan"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Lead Affiliate ID</label>
+                  <Input
+                    type="number"
+                    value={orderForm.leadAffiliateId}
+                    onChange={(e) => setOrderForm({ ...orderForm, leadAffiliateId: e.target.value })}
+                    placeholder="0 for no affiliate"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Sale Affiliate ID</label>
+                  <Input
+                    type="number"
+                    value={orderForm.saleAffiliateId}
+                    onChange={(e) => setOrderForm({ ...orderForm, saleAffiliateId: e.target.value })}
+                    placeholder="0 for no affiliate"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Products *</label>
+                <div className="mt-1">
+                  {selectedProducts.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedProducts.map((product) => (
+                        <div key={product.id} className="flex items-center justify-between p-3 border border-gray-300 rounded-md bg-gray-50">
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">{product.product_name}</div>
+                            <div className="text-sm text-gray-500">
+                              ID: {product.id} | SKU: {product.sku || 'N/A'} | Price: {formatCurrency(product.product_price)}
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeProduct(product.id)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowProductSelector(true)}
+                        className="w-full"
+                      >
+                        Add Another Product
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowProductSelector(true)}
+                        className="w-full justify-center"
+                      >
+                        Select Products
+                      </Button>
+                      <div className="text-xs text-gray-500">
+                        Or enter manually:
+                      </div>
+                      {orderForm.productIds.map((productId, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            type="number"
+                            value={productId}
+                            onChange={(e) => {
+                              const newProductIds = [...orderForm.productIds];
+                              newProductIds[index] = e.target.value;
+                              setOrderForm({ ...orderForm, productIds: newProductIds });
+                            }}
+                            placeholder="Enter product ID"
+                          />
+                          {orderForm.productIds.length > 1 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newProductIds = orderForm.productIds.filter((_, i) => i !== index);
+                                setOrderForm({ ...orderForm, productIds: newProductIds });
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setOrderForm({ ...orderForm, productIds: [...orderForm.productIds, ''] })}
+                      >
+                        Add Manual Product ID
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Subscription IDs</label>
+                <div className="mt-1 space-y-2">
+                  {orderForm.subscriptionIds.map((subscriptionId, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        type="number"
+                        value={subscriptionId}
+                        onChange={(e) => {
+                          const newSubscriptionIds = [...orderForm.subscriptionIds];
+                          newSubscriptionIds[index] = e.target.value;
+                          setOrderForm({ ...orderForm, subscriptionIds: newSubscriptionIds });
+                        }}
+                        placeholder="Enter subscription ID"
+                      />
+                      {orderForm.subscriptionIds.length > 1 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const newSubscriptionIds = orderForm.subscriptionIds.filter((_, i) => i !== index);
+                            setOrderForm({ ...orderForm, subscriptionIds: newSubscriptionIds });
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOrderForm({ ...orderForm, subscriptionIds: [...orderForm.subscriptionIds, ''] })}
+                  >
+                    Add Subscription
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Promo Codes</label>
+                <div className="mt-1 space-y-2">
+                  {orderForm.promoCodes.map((promoCode, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={promoCode}
+                        onChange={(e) => {
+                          const newPromoCodes = [...orderForm.promoCodes];
+                          newPromoCodes[index] = e.target.value;
+                          setOrderForm({ ...orderForm, promoCodes: newPromoCodes });
+                        }}
+                        placeholder="Enter promo code"
+                      />
+                      {orderForm.promoCodes.length > 1 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const newPromoCodes = orderForm.promoCodes.filter((_, i) => i !== index);
+                            setOrderForm({ ...orderForm, promoCodes: newPromoCodes });
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOrderForm({ ...orderForm, promoCodes: [...orderForm.promoCodes, ''] })}
+                  >
+                    Add Promo Code
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  id="processSpecials"
+                  type="checkbox"
+                  checked={orderForm.processSpecials}
+                  onChange={(e) => setOrderForm({ ...orderForm, processSpecials: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="processSpecials" className="ml-2 block text-sm text-gray-900">
+                  Process Specials (apply discounts)
+                </label>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateModal(false)}
+                disabled={createLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateOrder}
+                disabled={createLoading}
+              >
+                {createLoading ? 'Creating...' : 'Create Order'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Selector */}
+      <ContactSelector
+        isOpen={showContactSelector}
+        onClose={() => setShowContactSelector(false)}
+        onSelect={handleContactSelect}
+        mode="single"
+      />
+
+      {/* Product Selector */}
+      <ProductSelector
+        isOpen={showProductSelector}
+        onClose={() => setShowProductSelector(false)}
+        onSelect={handleProductSelect}
+      />
     </div>
   );
 }

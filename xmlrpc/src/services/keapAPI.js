@@ -3044,6 +3044,345 @@ async getResourcesForAffiliateProgram(programId) {
             };
         }
     }
+
+    async createOrder(orderData) {
+        try {
+            console.log('Creating order:', orderData);
+            
+            // Get the access token
+            const tokens = JSON.parse(localStorage.getItem('keap_tokens') || '{}');
+            const privateKey = 'x';
+
+            if (!privateKey) {
+                throw new Error('Access token required for XML-RPC');
+            }
+
+            // Ensure arrays have at least one element or are properly empty
+            const productIdElements = orderData.productIds.length > 0 
+                ? orderData.productIds.map(id => `<value><int>${parseInt(id, 10)}</int></value>`).join('\n          ')
+                : '';
+            
+            const subscriptionIdElements = orderData.subscriptionIds.length > 0
+                ? orderData.subscriptionIds.map(id => `<value><int>${parseInt(id, 10)}</int></value>`).join('\n          ')
+                : '';
+                
+            const promoCodeElements = orderData.promoCodes.length > 0
+                ? orderData.promoCodes.map(code => `<value><string>${code}</string></value>`).join('\n          ')
+                : '';
+
+            // Create manual XML payload for OrderService.placeOrder
+            const xmlPayload = `<?xml version='1.0' encoding='UTF-8'?>
+<methodCall>
+  <methodName>OrderService.placeOrder</methodName>
+  <params>
+    <param>
+      <value><string>${privateKey}</string></value>
+    </param>
+    <param>
+      <value><int>${parseInt(orderData.contactId, 10)}</int></value>
+    </param>
+    <param>
+      <value><int>${parseInt(orderData.cardId || 0, 10)}</int></value>
+    </param>
+    <param>
+      <value><int>${parseInt(orderData.planId || 0, 10)}</int></value>
+    </param>
+    <param>
+      <value><array>
+        <data>
+          ${productIdElements}
+        </data>
+      </array></value>
+    </param>
+    <param>
+      <value><array>
+        <data>
+          ${subscriptionIdElements}
+        </data>
+      </array></value>
+    </param>
+    <param>
+      <value><boolean>${orderData.processSpecials ? '1' : '0'}</boolean></value>
+    </param>
+    <param>
+      <value><array>
+        <data>
+          ${promoCodeElements}
+        </data>
+      </array></value>
+    </param>
+    <param>
+      <value><int>${parseInt(orderData.leadAffiliateId || 0, 10)}</int></value>
+    </param>
+    <param>
+      <value><int>${parseInt(orderData.saleAffiliateId || 0, 10)}</int></value>
+    </param>
+  </params>
+</methodCall>`;
+
+            console.log('Manual XML payload for create order:', xmlPayload);
+
+            // Send the request
+            const response = await api.post(this.xmlrpcUrl, xmlPayload, {
+                headers: {
+                    'Content-Type': 'text/xml'
+                }
+            });
+
+            // Parse the response
+            const result = this.parseXmlRpcResponse(response.data);
+            
+            console.log('Create order result:', result);
+
+            return { success: true, result };
+
+        } catch (error) {
+            console.error('Error in createOrder:', error.message);
+            const errorInfo = handleError(error, 'Create order');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getJobDetails(jobId) {
+        try {
+            console.log('Getting job details for ID:', jobId);
+
+            const result = await this.xmlRpcCall('DataService.query', [
+                'Job',
+                1, // limit - only get one record
+                0, // page
+                { Id: parseInt(jobId, 10) }, // queryData
+                [
+                    'Id', 'JobTitle', 'JobNotes', 'ContactId', 'ProductId', 
+                    'OrderStatus', 'JobStatus', 'OrderType', 'DateCreated',
+                    'DueDate', 'LastUpdated', 'JobRecurringId',
+                    'ShipCity', 'ShipCompany', 'ShipCountry', 'ShipFirstName',
+                    'ShipLastName', 'ShipMiddleName', 'ShipPhone', 'ShipState',
+                    'ShipStreet1', 'ShipStreet2', 'ShipZip'
+                ], // fields
+                'Id', // orderBy
+                true // ascending
+            ]);
+
+            console.log('Job details result:', result);
+
+            if (result && result.length > 0) {
+                const job = result[0];
+                return {
+                    success: true,
+                    job: {
+                        id: job.Id,
+                        job_title: job.JobTitle,
+                        job_notes: job.JobNotes,
+                        contact_id: job.ContactId,
+                        product_id: job.ProductId,
+                        order_status: job.OrderStatus,
+                        job_status: job.JobStatus,
+                        order_type: job.OrderType,
+                        date_created: job.DateCreated,
+                        due_date: job.DueDate,
+                        last_updated: job.LastUpdated,
+                        job_recurring_id: job.JobRecurringId,
+                        shipping_address: {
+                            city: job.ShipCity,
+                            company: job.ShipCompany,
+                            country: job.ShipCountry,
+                            first_name: job.ShipFirstName,
+                            last_name: job.ShipLastName,
+                            middle_name: job.ShipMiddleName,
+                            phone: job.ShipPhone,
+                            state: job.ShipState,
+                            street1: job.ShipStreet1,
+                            street2: job.ShipStreet2,
+                            zip: job.ShipZip
+                        }
+                    }
+                };
+            } else {
+                return { success: false, error: { message: 'Job not found' } };
+            }
+
+        } catch (error) {
+            console.error('Error in getJobDetails:', error.message);
+            const errorInfo = handleError(error, 'Get job details');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getInvoiceDetails(invoiceId) {
+        try {
+            console.log('Getting invoice details for ID:', invoiceId);
+
+            const result = await this.xmlRpcCall('DataService.query', [
+                'Invoice',
+                1, // limit
+                0, // page
+                { Id: parseInt(invoiceId, 10) }, // queryData
+                [
+                    'Id', 'JobId', 'ContactId', 'InvoiceTotal', 'TotalDue',
+                    'TotalPaid', 'PayStatus', 'DateCreated', 'InvoiceType',
+                    'ProductSold', 'Description', 'AffiliateId', 'CreditStatus',
+                    'RefundStatus', 'PromoCode', 'LeadAffiliateId', 'Synced'
+                ], // fields
+                'Id', // orderBy
+                true // ascending
+            ]);
+
+            if (result && result.length > 0) {
+                const invoice = result[0];
+                return {
+                    success: true,
+                    invoice: {
+                        id: invoice.Id,
+                        job_id: invoice.JobId,
+                        contact_id: invoice.ContactId,
+                        invoice_total: invoice.InvoiceTotal,
+                        total_due: invoice.TotalDue,
+                        total_paid: invoice.TotalPaid,
+                        pay_status: invoice.PayStatus,
+                        date_created: invoice.DateCreated,
+                        invoice_type: invoice.InvoiceType,
+                        product_sold: invoice.ProductSold,
+                        description: invoice.Description,
+                        affiliate_id: invoice.AffiliateId,
+                        credit_status: invoice.CreditStatus,
+                        refund_status: invoice.RefundStatus,
+                        promo_code: invoice.PromoCode,
+                        lead_affiliate_id: invoice.LeadAffiliateId,
+                        synced: invoice.Synced
+                    }
+                };
+            } else {
+                return { success: false, error: { message: 'Invoice not found' } };
+            }
+
+        } catch (error) {
+            console.error('Error in getInvoiceDetails:', error.message);
+            const errorInfo = handleError(error, 'Get invoice details');
+            return { success: false, error: errorInfo };
+        }
+    }
+
+    async getOrderById(orderId) {
+        try {
+            console.log('Getting order details for ID:', orderId);
+
+            const [invoiceResult, jobResult] = await Promise.all([
+                this.getInvoiceDetails(orderId),
+                this.getJobDetails(orderId)
+            ]);
+
+            if (!invoiceResult.success) {
+                throw new Error(invoiceResult.error?.message || 'Failed to get invoice details');
+            }
+
+            if (!jobResult.success) {
+                console.warn('No job details found for order', orderId);
+            }
+
+            const invoice = invoiceResult.invoice;
+            const job = jobResult.success ? jobResult.job : null;
+
+            // Create mock order items from job information
+            const orderItems = [];
+            if (job && job.ProductSold) {
+                orderItems.push({
+                    id: `job-item-${orderId}`,
+                    name: job.ProductSold,
+                    description: job.JobNotes || 'Product from Job',
+                    type: 'PRODUCT',
+                    quantity: 1,
+                    price: parseFloat(invoice.TotalDue) || 0,
+                    discount: 0,
+                    product: {
+                        id: job.ProductId || orderId,
+                        name: job.ProductSold,
+                        sku: `JOB-${orderId}`
+                    }
+                });
+            }
+
+            const orderData = {
+                id: parseInt(orderId),
+                invoice_number: invoice.InvoiceId,
+                status: invoice.PayStatus,
+                order_type: 'ONLINE',
+                source_type: 'XML-RPC',
+                
+                total: parseFloat(invoice.TotalDue) || 0,
+                total_paid: parseFloat(invoice.TotalPaid) || 0,
+                total_due: (parseFloat(invoice.TotalDue) || 0) - (parseFloat(invoice.TotalPaid) || 0),
+                refund_total: 0,
+                
+                order_date: invoice.DateCreated,
+                creation_date: invoice.DateCreated,
+                modification_date: invoice.LastUpdated,
+                
+                notes: job ? job.JobNotes : null,
+                title: `Order ${orderId}`,
+
+                contact: invoice.ContactId ? {
+                    id: invoice.ContactId,
+                    first_name: '',
+                    last_name: '',
+                    email: ''
+                } : null,
+
+                // Job-specific information
+                job_status: job ? (job.OrderStatus === 0 ? 'In Fulfillment' : 'Pending Payment') : null,
+                job_notes: job ? job.JobNotes : null,
+                shipping_address: job ? {
+                    street1: job.ShipAddress1,
+                    street2: job.ShipAddress2,
+                    city: job.ShipCity,
+                    state: job.ShipState,
+                    zip: job.ShipZIP,
+                    country: job.ShipCountry,
+                    first_name: job.ShipFirstName,
+                    last_name: job.ShipLastName,
+                    company: job.ShipCompany,
+                    phone: job.ShipPhone
+                } : null,
+
+                // Combine shipping information from both sources
+                shipping_information: job ? {
+                    first_name: job.ShipFirstName || '',
+                    middle_name: job.ShipMiddleName || '',
+                    last_name: job.ShipLastName || '',
+                    company: job.ShipCompany || '',
+                    street1: job.ShipAddress1 || '',
+                    street2: job.ShipAddress2 || '',
+                    city: job.ShipCity || '',
+                    state: job.ShipState || '',
+                    zip: job.ShipZIP || '',
+                    country: job.ShipCountry || '',
+                    phone: job.ShipPhone || ''
+                } : null,
+
+                // Job table fields
+                job_type: job ? job.JobRecurringId : null,
+                start_date: job ? job.StartDate : null,
+                end_date: job ? job.EndDate : null,
+                
+                // Order items from Job information
+                order_items: orderItems,
+                
+                // Payment plan placeholder  
+                payment_plan: null,
+
+                // Additional fields from Job table
+                product_sold: job ? job.ProductSold : null,
+                subscription_plan: job ? job.SubscriptionPlanId : null
+            };
+
+            console.log('Combined order data:', orderData);
+            return orderData;
+
+        } catch (error) {
+            console.error('Error in getOrderById:', error.message);
+            throw error;
+        }
+    }
 }
 
 

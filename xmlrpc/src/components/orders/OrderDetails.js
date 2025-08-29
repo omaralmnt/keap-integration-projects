@@ -119,11 +119,8 @@ export function OrderDetails() {
     const confirmDeleteOrder = async () => {
         try {
             setDeleteLoading(true);
-            await keapAPI.deleteOrder(orderId);
-
-            // Navigate back on success
-            navigate('/orders');
-
+            // XML-RPC doesn't support order deletion, so we'll show a message
+            alert('Order deletion is not supported in XML-RPC mode.');
         } catch (err) {
             console.error('Error deleting order:', err);
             alert('Failed to delete order. Please try again.');
@@ -137,21 +134,8 @@ export function OrderDetails() {
         try {
             setAddItemLoading(true);
 
-            const payload = {
-                product_id: parseInt(newItem.product_id),
-                quantity: parseInt(newItem.quantity),
-                item_type: newItem.item_type,
-                description: newItem.description || undefined,
-                price: newItem.price ? newItem.price.toString() : undefined
-            };
-
-            // Remove undefined values
-            Object.keys(payload).forEach(key =>
-                payload[key] === undefined && delete payload[key]
-            );
-
-            console.log('Adding order item:', payload);
-            await keapAPI.createOrderItem(orderId, payload);
+            // XML-RPC doesn't support adding order items to existing orders
+            alert('Adding order items is not supported in XML-RPC mode. Please create a new order with the required items.');
 
             // Reset form and close modal
             setNewItem({
@@ -162,9 +146,6 @@ export function OrderDetails() {
                 quantity: 1
             });
             setShowAddItem(false);
-
-            // Reload order details
-            await loadOrderDetails();
 
         } catch (err) {
             console.error('Error adding order item:', err);
@@ -181,12 +162,8 @@ export function OrderDetails() {
 
     const confirmDeleteOrderItem = async () => {
         try {
-            console.log('Deleting order item:', itemToDelete);
-            await keapAPI.deleteOrderItem(orderId, itemToDelete);
-
-            // Reload order details
-            await loadOrderDetails();
-
+            // XML-RPC doesn't support deleting individual order items
+            alert('Deleting individual order items is not supported in XML-RPC mode.');
         } catch (err) {
             console.error('Error deleting order item:', err);
             alert('Failed to delete order item. Please try again.');
@@ -251,26 +228,11 @@ export function OrderDetails() {
         try {
             setUpdatePaymentPlanLoading(true);
 
-            const payload = {
-                auto_charge: paymentPlan.auto_charge,
-                credit_card_id: parseInt(paymentPlan.credit_card_id),
-                days_between_payments: parseInt(paymentPlan.days_between_payments),
-                initial_payment_amount: parseFloat(paymentPlan.initial_payment_amount) || 0,
-                initial_payment_date: paymentPlan.initial_payment_date,
-                number_of_payments: parseInt(paymentPlan.number_of_payments),
-                payment_gateway: {
-                    merchant_account_id: parseInt(paymentPlan.payment_gateway.merchant_account_id),
-                    use_default: paymentPlan.payment_gateway.use_default
-                },
-                plan_start_date: paymentPlan.plan_start_date
-            };
+            // XML-RPC doesn't support updating payment plans
+            alert('Payment plan updates are not supported in XML-RPC mode.');
 
-            console.log('Updating payment plan:', payload);
-            await keapAPI.replaceOrderPaymentPlan(orderId, payload);
-
-            // Close modal and reload order details
+            // Close modal
             setShowEditPaymentPlan(false);
-            await loadOrderDetails();
 
         } catch (err) {
             console.error('Error updating payment plan:', err);
@@ -523,6 +485,7 @@ export function OrderDetails() {
                     <OrderPayments orderId={orderId} />
                     <OrderTransactions orderId={orderId} />
 
+
                 </div>
 
                 {/* Right Column - Contact & Shipping */}
@@ -620,6 +583,8 @@ export function OrderDetails() {
                         </div>
                     )}
 
+
+
                     {/* Payment Information */}
                     <div className="bg-white shadow rounded-lg p-6">
                         <div className="flex items-center justify-between mb-4">
@@ -684,7 +649,6 @@ export function OrderDetails() {
                         </div>
                     </div>
 
-
                     {/* Additional Info */}
                     <div className="bg-white shadow rounded-lg p-6">
                         <div className="flex items-center space-x-2 mb-4">
@@ -712,6 +676,26 @@ export function OrderDetails() {
                                         }`}>
                                         {order.recurring ? 'Yes' : 'No'}
                                     </span>
+                                </div>
+                            )}
+
+                            {order.job_status && (
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Job Status:</span>
+                                    <span className={`px-2 py-1 text-xs rounded ${
+                                        order.job_status === 'In Fulfillment' 
+                                            ? 'bg-blue-100 text-blue-800' 
+                                            : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                        {order.job_status}
+                                    </span>
+                                </div>
+                            )}
+
+                            {order.product_sold && (
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Product Sold:</span>
+                                    <span className="text-gray-900">{order.product_sold}</span>
                                 </div>
                             )}
 
@@ -748,7 +732,7 @@ export function OrderDetails() {
                             <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                                 <div className="mb-4">
                                     <h3 className="text-lg font-medium text-gray-900 mb-2">Add Order Item</h3>
-                                    <p className="text-sm text-gray-500">Add a new item to this order</p>
+                                    <p className="text-sm text-gray-500">Add a new item to this order (XML-RPC limitation: Not supported)</p>
                                 </div>
 
                                 <div className="space-y-4">
@@ -761,7 +745,8 @@ export function OrderDetails() {
                                                 onChange={(e) => setNewItem(prev => ({ ...prev, product_id: e.target.value }))}
                                                 required
                                                 min="1"
-                                                className="flex-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                disabled
+                                                className="flex-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-100"
                                             />
                                             <Button
                                                 type="button"
@@ -769,6 +754,7 @@ export function OrderDetails() {
                                                 variant="outline"
                                                 size="sm"
                                                 className="px-3"
+                                                disabled
                                             >
                                                 Select
                                             </Button>
@@ -783,7 +769,8 @@ export function OrderDetails() {
                                             onChange={(e) => setNewItem(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
                                             required
                                             min="1"
-                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            disabled
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-100"
                                         />
                                     </div>
 
@@ -792,7 +779,8 @@ export function OrderDetails() {
                                         <select
                                             value={newItem.item_type}
                                             onChange={(e) => setNewItem(prev => ({ ...prev, item_type: e.target.value }))}
-                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-100"
+                                            disabled
                                         >
                                             {itemTypes.map(type => (
                                                 <option key={type} value={type}>{type}</option>
@@ -809,7 +797,8 @@ export function OrderDetails() {
                                             value={newItem.price}
                                             onChange={(e) => setNewItem(prev => ({ ...prev, price: e.target.value }))}
                                             placeholder="Leave empty for default price"
-                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            disabled
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-100"
                                         />
                                     </div>
 
@@ -820,7 +809,8 @@ export function OrderDetails() {
                                             onChange={(e) => setNewItem(prev => ({ ...prev, description: e.target.value }))}
                                             rows={3}
                                             placeholder="Item description"
-                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            disabled
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-100"
                                         />
                                     </div>
                                 </div>
@@ -829,10 +819,10 @@ export function OrderDetails() {
                             <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                                 <Button
                                     onClick={handleAddOrderItem}
-                                    disabled={!newItem.product_id || addItemLoading}
-                                    className="w-full sm:w-auto sm:ml-3"
+                                    disabled={true}
+                                    className="w-full sm:w-auto sm:ml-3 bg-gray-400"
                                 >
-                                    {addItemLoading ? 'Adding...' : 'Add Item'}
+                                    Not Supported in XML-RPC
                                 </Button>
                                 <Button
                                     onClick={() => setShowAddItem(false)}
@@ -871,11 +861,11 @@ export function OrderDetails() {
                                     </div>
                                     <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                                         <h3 className="text-lg leading-6 font-medium text-gray-900">
-                                            Delete Order
+                                            Delete Order (Not Supported)
                                         </h3>
                                         <div className="mt-2">
                                             <p className="text-sm text-gray-500">
-                                                Are you sure you want to delete Order #{order?.id}? This action cannot be undone and will permanently remove the order and all its items.
+                                                Order deletion is not supported in XML-RPC mode. This functionality is only available in REST API mode.
                                             </p>
                                         </div>
                                     </div>
@@ -884,16 +874,15 @@ export function OrderDetails() {
                             <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                                 <Button
                                     onClick={confirmDeleteOrder}
-                                    disabled={deleteLoading}
-                                    className="w-full sm:w-auto sm:ml-3 bg-red-600 hover:bg-red-700 text-white"
+                                    disabled={true}
+                                    className="w-full sm:w-auto sm:ml-3 bg-gray-400"
                                 >
-                                    {deleteLoading ? 'Deleting...' : 'Delete Order'}
+                                    Not Supported
                                 </Button>
                                 <Button
                                     onClick={() => setShowDeleteOrderConfirm(false)}
                                     variant="outline"
                                     className="mt-3 w-full sm:mt-0 sm:w-auto"
-                                    disabled={deleteLoading}
                                 >
                                     Cancel
                                 </Button>
@@ -902,7 +891,7 @@ export function OrderDetails() {
                     </div>
                 </div>
             )}
-            {/* Edit Payment Plan Modal */}
+
             {/* Edit Payment Plan Modal */}
             {showEditPaymentPlan && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -915,7 +904,7 @@ export function OrderDetails() {
                             <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                                 <div className="mb-4">
                                     <h3 className="text-lg font-medium text-gray-900 mb-2">Edit Payment Plan</h3>
-                                    <p className="text-sm text-gray-500">Configure the payment plan for this order</p>
+                                    <p className="text-sm text-gray-500">Payment plan editing is not supported in XML-RPC mode</p>
                                 </div>
 
                                 <div className="space-y-4">
@@ -928,8 +917,9 @@ export function OrderDetails() {
                                                 min="0"
                                                 value={paymentPlan.initial_payment_amount}
                                                 onChange={(e) => setPaymentPlan(prev => ({ ...prev, initial_payment_amount: e.target.value }))}
-                                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-100"
                                                 placeholder="0.00"
+                                                disabled
                                             />
                                         </div>
 
@@ -939,139 +929,26 @@ export function OrderDetails() {
                                                 type="date"
                                                 value={paymentPlan.initial_payment_date}
                                                 onChange={(e) => setPaymentPlan(prev => ({ ...prev, initial_payment_date: e.target.value }))}
-                                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-100"
+                                                disabled
                                             />
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Number of Payments</label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={paymentPlan.number_of_payments}
-                                                onChange={(e) => setPaymentPlan(prev => ({ ...prev, number_of_payments: parseInt(e.target.value) || 0 }))}
-                                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                placeholder="0"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Days Between Payments</label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={paymentPlan.days_between_payments}
-                                                onChange={(e) => setPaymentPlan(prev => ({ ...prev, days_between_payments: parseInt(e.target.value) || 0 }))}
-                                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                placeholder="0"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Plan Start Date</label>
-                                            <input
-                                                type="date"
-                                                value={paymentPlan.plan_start_date}
-                                                onChange={(e) => setPaymentPlan(prev => ({ ...prev, plan_start_date: e.target.value }))}
-                                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Credit Card ID {paymentPlan.auto_charge && <span className="text-red-500">*</span>}
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                value={paymentPlan.credit_card_id}
-                                                onChange={(e) => setPaymentPlan(prev => ({ ...prev, credit_card_id: parseInt(e.target.value) || 0 }))}
-                                                className={`block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${paymentPlan.auto_charge && paymentPlan.credit_card_id === 0
-                                                        ? 'border-red-300'
-                                                        : 'border-gray-300'
-                                                    }`}
-                                                placeholder="Enter credit card ID"
-                                                required={paymentPlan.auto_charge}
-                                            />
-                                            {paymentPlan.auto_charge && paymentPlan.credit_card_id === 0 && (
-                                                <p className="mt-1 text-sm text-red-600">Credit Card ID is required when Auto Charge is enabled</p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center space-x-6">
-                                        <div className="flex items-center">
-                                            <input
-                                                id="auto-charge"
-                                                type="checkbox"
-                                                checked={paymentPlan.auto_charge}
-                                                onChange={(e) => setPaymentPlan(prev => ({ ...prev, auto_charge: e.target.checked }))}
-                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                            />
-                                            <label htmlFor="auto-charge" className="ml-2 text-sm font-medium text-gray-700">
-                                                Auto Charge
-                                            </label>
-                                        </div>
-
-                                        <div className="flex items-center">
-                                            <input
-                                                id="use-default-gateway"
-                                                type="checkbox"
-                                                checked={paymentPlan.payment_gateway.use_default}
-                                                onChange={(e) => setPaymentPlan(prev => ({
-                                                    ...prev,
-                                                    payment_gateway: {
-                                                        ...prev.payment_gateway,
-                                                        use_default: e.target.checked
-                                                    }
-                                                }))}
-                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                            />
-                                            <label htmlFor="use-default-gateway" className="ml-2 text-sm font-medium text-gray-700">
-                                                Use Default Gateway
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    {!paymentPlan.payment_gateway.use_default && (
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Merchant Account ID</label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={paymentPlan.payment_gateway.merchant_account_id}
-                                                onChange={(e) => setPaymentPlan(prev => ({
-                                                    ...prev,
-                                                    payment_gateway: {
-                                                        ...prev.payment_gateway,
-                                                        merchant_account_id: parseInt(e.target.value) || 0
-                                                    }
-                                                }))}
-                                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                placeholder="0"
-                                            />
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 
                             <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                                 <Button
                                     onClick={handleUpdatePaymentPlan}
-                                    disabled={updatePaymentPlanLoading || (paymentPlan.auto_charge && paymentPlan.credit_card_id === 0)}
-                                    className="w-full sm:w-auto sm:ml-3"
+                                    disabled={true}
+                                    className="w-full sm:w-auto sm:ml-3 bg-gray-400"
                                 >
-                                    {updatePaymentPlanLoading ? 'Updating...' : 'Update Payment Plan'}
+                                    Not Supported in XML-RPC
                                 </Button>
                                 <Button
                                     onClick={() => setShowEditPaymentPlan(false)}
                                     variant="outline"
                                     className="mt-3 w-full sm:mt-0 sm:w-auto"
-                                    disabled={updatePaymentPlanLoading}
                                 >
                                     Cancel
                                 </Button>
@@ -1080,6 +957,7 @@ export function OrderDetails() {
                     </div>
                 </div>
             )}
+
             {/* Delete Item Confirmation Modal */}
             {showDeleteItemConfirm && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -1096,11 +974,11 @@ export function OrderDetails() {
                                     </div>
                                     <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                                         <h3 className="text-lg leading-6 font-medium text-gray-900">
-                                            Delete Order Item
+                                            Delete Order Item (Not Supported)
                                         </h3>
                                         <div className="mt-2">
                                             <p className="text-sm text-gray-500">
-                                                Are you sure you want to delete this item from the order? This action cannot be undone.
+                                                Deleting individual order items is not supported in XML-RPC mode.
                                             </p>
                                         </div>
                                     </div>
@@ -1109,9 +987,10 @@ export function OrderDetails() {
                             <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                                 <Button
                                     onClick={confirmDeleteOrderItem}
-                                    className="w-full sm:w-auto sm:ml-3 bg-red-600 hover:bg-red-700 text-white"
+                                    className="w-full sm:w-auto sm:ml-3 bg-gray-400"
+                                    disabled
                                 >
-                                    Delete Item
+                                    Not Supported
                                 </Button>
                                 <Button
                                     onClick={() => setShowDeleteItemConfirm(false)}
